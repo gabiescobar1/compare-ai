@@ -13,6 +13,7 @@ export class ArticleSummaryRepository {
       .insert({
         doi: summaryData.doi,
         title: summaryData.title,
+        discipline: summaryData.discipline,
         original_abstract: summaryData.original_abstract,
         openai_summary: summaryData.openai_summary,
         gemini_summary: summaryData.gemini_summary,
@@ -48,6 +49,7 @@ export class ArticleSummaryRepository {
       id: item.id,
       doi: item.doi,
       title: item.title,
+      discipline: item.discipline,
       originalAbstract: item.original_abstract,
       openaiSummary: item.openai_summary,
       geminiSummary: item.gemini_summary,
@@ -55,5 +57,20 @@ export class ArticleSummaryRepository {
       savedToDb: true,
       created_at: item.created_at
     }));
+  }
+
+  async delete(id) {
+    if (!supabase) return false;
+    
+    const { error } = await supabase
+      .from('article_summaries')
+      .delete()
+      .eq('id', id);
+      
+    if (error) {
+      console.error("Erro ao deletar:", error);
+      return false;
+    }
+    return true;
   }
 }

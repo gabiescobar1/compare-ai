@@ -14,7 +14,7 @@ export class ArticleProcessorService {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  async processDoi(doiInput, selectedModels) {
+  async processDoi(doiInput, selectedModels, discipline) {
     try {
       const doi = doiInput.trim();
       if (!doi) throw new Error("DOI inválido.");
@@ -40,6 +40,7 @@ export class ArticleProcessorService {
       const summaryToSave = new ArticleSummary({
         doi: article.doi,
         title: article.title,
+        discipline: discipline,
         original_abstract: article.abstract,
         openai_summary: openaiSummary, // JSON Object containing content, model, inputTokens, outputTokens, cost
         gemini_summary: geminiSummary, // JSON Object
@@ -64,6 +65,7 @@ export class ArticleProcessorService {
         id: finalId,
         doi: summaryToSave.doi,
         title: summaryToSave.title,
+        discipline: summaryToSave.discipline,
         originalAbstract: summaryToSave.original_abstract,
         openaiSummary: summaryToSave.openai_summary,
         geminiSummary: summaryToSave.gemini_summary,

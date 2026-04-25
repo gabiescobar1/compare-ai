@@ -15,16 +15,10 @@ export default function Home() {
 
   return (
     <div className="min-h-screen pt-32 pb-20 px-6">
-      <header className="flex flex-col items-center text-center max-w-4xl mx-auto mb-16">
-        <div className="inline-flex items-center gap-2 mb-6 px-4 py-1.5 bg-blue-50 text-blue-800 border border-blue-200 rounded text-xs font-bold tracking-widest uppercase shadow-sm">
-          <IconBook2 className="w-4 h-4" /> Comparador Acadêmico
-        </div>
-        <h1 className="text-4xl md:text-6xl font-serif font-black mb-6 text-slate-900 leading-tight">
-          Sintetize Artigos do Plos One <br/> com Inteligência Artificial
+      <header className="flex flex-col items-center text-center max-w-4xl mx-auto mb-4">
+        <h1 className="text-4xl md:text-6xl font-serif font-black text-[#291f1b] leading-tight">
+          Compare AI
         </h1>
-        <p className="text-slate-600 text-lg md:text-xl max-w-2xl leading-relaxed">
-          Forneça seus DOIs abaixo. Nossa arquitetura executará um parsing direto na formatação acadêmica e orquestrará a comparação de resumos estruturados.
-        </p>
       </header>
 
       <main className="max-w-7xl mx-auto space-y-16">

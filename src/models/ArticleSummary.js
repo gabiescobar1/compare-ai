@@ -3,6 +3,7 @@ export class ArticleSummary {
     id = null,
     doi,
     title,
+    discipline,
     original_abstract,
     openai_summary,
     gemini_summary,
@@ -12,6 +13,7 @@ export class ArticleSummary {
     this.id = id;
     this.doi = doi;
     this.title = title;
+    this.discipline = discipline;
     this.original_abstract = original_abstract;
     this.openai_summary = openai_summary;
     this.gemini_summary = gemini_summary;

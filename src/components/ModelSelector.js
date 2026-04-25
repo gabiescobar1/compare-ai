@@ -15,7 +15,7 @@ export default function ModelSelector({ selectedModels, onChange, disabled }) {
           </label>
           <select 
             disabled={disabled}
-            className="bg-white border border-slate-300 text-slate-800 text-sm font-medium rounded shadow-sm px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-800 appearance-none disabled:opacity-50 transition-colors"
+            className="bg-white border border-slate-300 text-slate-800 text-sm font-medium rounded-2xl shadow-sm px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#ff6b00] appearance-none disabled:opacity-50 transition-colors"
             value={selectedModels[key]}
             onChange={(e) => handleChange(key, e.target.value)}
           >
