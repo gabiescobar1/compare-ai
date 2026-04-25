@@ -1,7 +1,6 @@
 import { PlosApiService } from './PlosApiService';
 import { AIService } from './AIService';
 import { ArticleSummaryRepository } from '@/repositories/ArticleSummaryRepository';
-import { ArticleSummary } from '@/models/ArticleSummary';
 
 export class ArticleProcessorService {
   constructor() {
@@ -14,44 +13,52 @@ export class ArticleProcessorService {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
+  /**
+   * @param {string} doiInput
+   * @param {Array<{provider: string, modelId: string}>} selectedModels
+   * @param {string} discipline
+   */
   async processDoi(doiInput, selectedModels, discipline) {
     try {
       const doi = doiInput.trim();
       if (!doi) throw new Error("DOI inválido.");
 
       const article = await this.plosApi.fetchArticle(doi);
-      
-      const openaiModel = selectedModels?.openai || 'gpt-5.1';
-      const geminiModel = selectedModels?.gemini || 'gemini-3.1';
-      const claudeModel = selectedModels?.claude || 'claude-4.6-sonnet';
 
-      const openaiPromise = this.aiService.summarizeWithOpenAI(article.title, article.bodyText, openaiModel);
-      await this.sleep(5000);
-      const geminiPromise = this.aiService.summarizeWithGemini(article.title, article.bodyText, geminiModel);
-      await this.sleep(5000);
-      const claudePromise = this.aiService.summarizeWithClaude(article.title, article.bodyText, claudeModel);
-      
-      const [openaiSummary, geminiSummary, claudeSummary] = await Promise.all([
-        openaiPromise,
-        geminiPromise,
-        claudePromise
-      ]);
-      
-      const summaryToSave = new ArticleSummary({
-        doi: article.doi,
-        title: article.title,
-        discipline: discipline,
-        original_abstract: article.abstract,
-        openai_summary: openaiSummary, // JSON Object containing content, model, inputTokens, outputTokens, cost
-        gemini_summary: geminiSummary, // JSON Object
-        claude_summary: claudeSummary  // JSON Object
-      });
+      // Processar cada modelo selecionado sequencialmente com delay
+      const summariesResults = [];
+      for (let i = 0; i < selectedModels.length; i++) {
+        const { provider, modelId } = selectedModels[i];
+        const result = await this.aiService.summarize(provider, modelId, article.title, article.bodyText);
+        summariesResults.push({
+          provider,
+          model_id: modelId,
+          content: result.content,
+          input_tokens: result.inputTokens,
+          output_tokens: result.outputTokens,
+          cost: result.cost,
+        });
 
+        // Delay entre chamadas para rate-limiting (exceto última)
+        if (i < selectedModels.length - 1) {
+          await this.sleep(5000);
+        }
+      }
+
+      // Salvar no banco
       let savedToDb = false;
       let finalId = String(Date.now());
-      
+
       try {
-        const savedEntity = await this.repository.save(summaryToSave);
+        const savedEntity = await this.repository.save(
+          {
+            doi: article.doi,
+            title: article.title,
+            discipline: discipline,
+            original_abstract: article.abstract,
+          },
+          summariesResults
+        );
         if (savedEntity) {
           savedToDb = true;
           finalId = savedEntity.id;
@@ -63,13 +70,11 @@ export class ArticleProcessorService {
       return {
         success: true,
         id: finalId,
-        doi: summaryToSave.doi,
-        title: summaryToSave.title,
-        discipline: summaryToSave.discipline,
-        originalAbstract: summaryToSave.original_abstract,
-        openaiSummary: summaryToSave.openai_summary,
-        geminiSummary: summaryToSave.gemini_summary,
-        claudeSummary: summaryToSave.claude_summary,
+        doi: article.doi,
+        title: article.title,
+        discipline: discipline,
+        originalAbstract: article.abstract,
+        summaries: summariesResults,
         savedToDb
       };
 

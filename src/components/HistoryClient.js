@@ -77,7 +77,7 @@ export default function HistoryClient({ analyses }) {
            </div>
         ) : (
            filteredAnalyses.map(item => (
-              <ResultsComparison key={item.id} data={item} onDelete={handleDelete} />
+              <ResultsComparison key={item.id} data={item} onDelete={handleDelete} defaultExpanded={false} />
            ))
         )}
       </main>

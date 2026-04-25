@@ -53,3 +53,24 @@ a.disabled,
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+/* Scrollbar horizontal — ultrafina, quase branca, quase circular */
+.custom-scrollbar-h {
+  scrollbar-width: thin;
+  scrollbar-color: #ececee transparent;
+}
+.custom-scrollbar-h::-webkit-scrollbar {
+  height: 3px;
+}
+.custom-scrollbar-h::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 999px;
+  margin: 0 40%;
+}
+.custom-scrollbar-h::-webkit-scrollbar-thumb {
+  background: #ececee;
+  border-radius: 999px;
+}
+.custom-scrollbar-h::-webkit-scrollbar-thumb:hover {
+  background: #e0e0e2;
+}

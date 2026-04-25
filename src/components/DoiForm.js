@@ -16,11 +16,9 @@ export default function DoiForm({ onResult, onProcessStart }) {
   const [countdown, setCountdown] = useState(0);
   const [errorText, setErrorText] = useState("");
   
-  const [selectedModels, setSelectedModels] = useState({
-    openai: AI_MODELS.OPENAI[0].id,
-    gemini: AI_MODELS.GEMINI[0].id,
-    claude: AI_MODELS.CLAUDE[0].id,
-  });
+  const [selectedModels, setSelectedModels] = useState([
+    { provider: 'openai', modelId: AI_MODELS.OPENAI[0].id },
+  ]);
 
   const handleProcess = async () => {
     if (!doisInput.trim()) { setErrorText("Por favor, insira ao menos um DOI."); return; }

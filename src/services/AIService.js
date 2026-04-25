@@ -14,6 +14,7 @@ Body text:
 ${body}
 
 Write in English. Format the text in a professional way.
+IMPORTANT: Do NOT use, reference, or reproduce any existing abstract of the article. Generate the abstract solely based on the body text provided above.
 Return ONLY the paragraphs of the abstract. Do NOT include any titles, headings, or prefixes (such as "Abstract:" or "Abstract"). Start directly with the first word of the generated text.
 `;
   }
@@ -116,6 +117,15 @@ Return ONLY the paragraphs of the abstract. Do NOT include any titles, headings,
     } catch (error) {
       console.error("Claude Error:", error);
       return this.createErrorResponse(error.message, modelId);
+    }
+  }
+
+  async summarize(provider, modelId, title, body) {
+    switch (provider) {
+      case 'openai': return this.summarizeWithOpenAI(title, body, modelId);
+      case 'gemini': return this.summarizeWithGemini(title, body, modelId);
+      case 'claude': return this.summarizeWithClaude(title, body, modelId);
+      default: return this.createErrorResponse(`Provider desconhecido: ${provider}`, modelId);
     }
   }
 }

@@ -16,6 +16,12 @@ export const AI_MODELS = {
   ]
 };
 
+export const PROVIDERS = [
+  { id: 'openai', label: 'OpenAI', key: 'OPENAI' },
+  { id: 'gemini', label: 'Google Gemini', key: 'GEMINI' },
+  { id: 'claude', label: 'Anthropic Claude', key: 'CLAUDE' },
+];
+
 // Funça utilitária para calcular o preço
 export function calculateCost(provider, modelId, inTokens, outTokens) {
   const modelsForProvider = AI_MODELS[provider.toUpperCase()] || [];

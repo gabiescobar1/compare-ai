@@ -2,7 +2,6 @@
 import { useState } from 'react';
 import DoiForm from '@/components/DoiForm';
 import ResultsComparison from '@/components/ResultsComparison';
-import { IconBook2 } from '@tabler/icons-react';
 
 export default function Home() {
   const [results, setResults] = useState([]);
@@ -11,7 +10,7 @@ export default function Home() {
     setResults(prev => [newResult, ...prev]);
   };
 
-  const handleProcessStart = () => {};
+  const handleProcessStart = () => { };
 
   return (
     <div className="min-h-screen pt-32 pb-20 px-6">
@@ -23,7 +22,7 @@ export default function Home() {
 
       <main className="max-w-7xl mx-auto space-y-16">
         <div className="max-w-4xl mx-auto">
-           <DoiForm onResult={handleResultAdded} onProcessStart={handleProcessStart} />
+          <DoiForm onResult={handleResultAdded} onProcessStart={handleProcessStart} />
         </div>
 
         <div className="space-y-12">
