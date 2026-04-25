@@ -1,5 +1,6 @@
 import { Inter, Montserrat } from "next/font/google";
 import Navigation from "@/components/Navigation";
+import Footer from "@/components/Footer";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -16,6 +17,7 @@ export default function RootLayout({ children }) {
       <body className="min-h-full flex flex-col text-slate-900 font-sans">
         <Navigation />
         {children}
+        <Footer />
       </body>
     </html>
   );
