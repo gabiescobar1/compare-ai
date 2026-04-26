@@ -19,7 +19,6 @@ export default function RootLayout({ children }) {
       <body className="min-h-full flex flex-col text-slate-900 font-sans">
         <ThemeProvider>
           <Navigation />
-          <ThemeToggle />
           {children}
           <Footer />
         </ThemeProvider>

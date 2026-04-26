@@ -11,12 +11,16 @@
 body {
   background: linear-gradient(to bottom, #ffda6a, #f5e3d0, #f4ebe1);
   background-attachment: fixed;
+  background-size: cover;
   color: var(--foreground);
   transition: background 0.3s ease, color 0.3s ease;
+  min-height: 100vh;
 }
 
 html.dark body {
-  background: linear-gradient(to bottom, #1c1008, #1f1510, #221812);
+  background: linear-gradient(to bottom, #251605, #30200d, #352511, #3e2d18, #46341e);
+  background-attachment: fixed;
+  background-size: cover;
   color: #f0e4d4;
 }
 

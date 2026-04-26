@@ -8,6 +8,8 @@ import {
   IconBulb,
   IconAlertCircle,
   IconSparkles,
+  IconSettings,
+  IconLock,
 } from '@tabler/icons-react';
 
 export const metadata = {
@@ -22,7 +24,7 @@ const steps = [
     icon: IconSearch,
     title: 'Cole o DOI do artigo',
     description:
-      'Na página inicial, localize o campo de busca e insira o DOI (Digital Object Identifier) do artigo científico que deseja analisar. O DOI é um identificador único no formato 10.XXXX/XXXXX.',
+      'Na página inicial, localize o campo de busca e insira o DOI (Digital Object Identifier) do artigo científico. Você pode inserir múltiplos DOIs ao mesmo tempo, bastando separá-los por vírgula (Ex: 10.1001/xxx, 10.1002/yyy).',
     tip: 'Você encontra o DOI na página do artigo ou nas bases de dados como PubMed, PLOS ONE e Scopus.',
   },
   {
@@ -96,14 +98,36 @@ export default function InstrucoesPage() {
           <IconSparkles className="w-3.5 h-3.5" />
           Guia de uso
         </div>
-        <h1 className="text-4xl md:text-5xl font-serif font-black text-[#291f1b] leading-tight mb-4">
+        <h1 className="text-4xl md:text-5xl font-serif font-black text-[#1C1008] dark:text-[#f0e4d4] leading-tight mb-4">
           Como usar o Compare AI
         </h1>
-        <p className="text-lg text-slate-600 leading-relaxed">
+        <p className="text-lg text-[#1C1008]/80 dark:text-[#b0a090] leading-relaxed">
           Analise artigos científicos com múltiplos modelos de inteligência artificial em poucos
-          passos. Veja como é simples comparar perspectivas de diferentes IAs sobre o mesmo texto.
+          passos. Veja como é simples comparar perspectivas de diferentes IAs sobre o mesmo&nbsp;texto.
         </p>
       </header>
+
+      {/* Aviso de API Keys — Em breve */}
+      <div className="max-w-4xl mx-auto mb-12">
+        <div className="bg-[#1C1008] dark:bg-[#1a0e08] text-white rounded-3xl p-6 md:p-8 flex flex-col md:flex-row items-center gap-6 shadow-xl border border-transparent dark:border-white/5 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <IconSettings className="w-24 h-24 -mr-8 -mt-8" />
+          </div>
+          <div className="w-14 h-14 rounded-2xl bg-[#ff6b00] flex items-center justify-center flex-shrink-0 shadow-lg">
+            <IconLock className="w-7 h-7 text-white" />
+          </div>
+          <div className="flex-1 text-center md:text-left relative z-10">
+            <h3 className="text-xl font-serif font-black mb-2 flex items-center justify-center md:justify-start gap-2">
+              Passo 0: Configurar suas Chaves de API
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] bg-[#ff6b00] px-2 py-0.5 rounded text-white ml-2">Em breve</span>
+            </h3>
+            <p className="text-sm text-white/70 leading-relaxed max-w-2xl">
+              O primeiro passo real será inserir suas próprias chaves de API (OpenAI, Anthropic, Google) nas configurações da sua conta. 
+              Esta funcionalidade ainda está em desenvolvimento, mas em breve permitirá que você utilize seus próprios créditos e tenha total controle sobre suas análises.
+            </p>
+          </div>
+        </div>
+      </div>
 
       {/* Steps */}
       <section className="max-w-4xl mx-auto mb-24">
@@ -117,7 +141,7 @@ export default function InstrucoesPage() {
               return (
                 <div
                   key={idx}
-                  className="relative bg-white/80 backdrop-blur-sm rounded-2xl border border-slate-200 shadow-sm p-6 md:p-8 flex gap-6 items-start hover:shadow-md transition-shadow"
+                  className="relative bg-white/80 dark:bg-[#211307]/90 backdrop-blur-sm rounded-2xl border border-[#1C1008]/15 dark:border-white/8 shadow-sm p-6 md:p-8 flex gap-6 items-start hover:shadow-md transition-shadow"
                 >
                   {/* Number + Icon */}
                   <div className="flex-shrink-0 flex flex-col items-center gap-1">
@@ -131,16 +155,16 @@ export default function InstrucoesPage() {
 
                   {/* Content */}
                   <div className="flex-1 min-w-0">
-                    <h2 className="text-lg font-serif font-black text-[#291f1b] mb-2">
+                    <h2 className="text-lg font-serif font-black text-[#1C1008] dark:text-[#f0e4d4] mb-2">
                       {step.title}
                     </h2>
-                    <p className="text-sm text-slate-600 leading-relaxed mb-3">
+                    <p className="text-sm text-[#1C1008]/80 dark:text-[#b0a090] leading-relaxed mb-3">
                       {step.description}
                     </p>
                     {step.tip && (
-                      <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
-                        <IconBulb className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
-                        <p className="text-xs text-amber-700 leading-relaxed">{step.tip}</p>
+                      <div className="flex items-start gap-2 bg-amber-50 dark:bg-amber-900/15 border border-amber-200 dark:border-amber-700/30 rounded-xl px-3 py-2">
+                        <IconBulb className="w-4 h-4 text-amber-500 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                        <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">{step.tip}</p>
                       </div>
                     )}
                   </div>
@@ -154,24 +178,20 @@ export default function InstrucoesPage() {
       {/* FAQ */}
       <section className="max-w-3xl mx-auto">
         <div className="text-center mb-10">
-          <div className="inline-flex items-center gap-2 bg-slate-100 text-slate-500 text-xs font-black uppercase tracking-widest px-4 py-2 rounded-full mb-4">
-            <IconAlertCircle className="w-3.5 h-3.5" />
-            Perguntas frequentes
-          </div>
-          <h2 className="text-2xl font-serif font-black text-[#291f1b]">Dúvidas comuns</h2>
+          <h2 className="text-2xl font-serif font-black text-[#1C1008] dark:text-[#f0e4d4]">Dúvidas comuns</h2>
         </div>
 
         <div className="space-y-3">
           {faqs.map((faq, idx) => (
             <details
               key={idx}
-              className="group bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl overflow-hidden shadow-sm"
+              className="group bg-white/80 dark:bg-[#211307]/90 backdrop-blur-sm border border-[#1C1008]/15 dark:border-white/8 rounded-2xl overflow-hidden shadow-sm"
             >
-              <summary className="flex items-center justify-between gap-4 px-6 py-4 cursor-pointer list-none font-semibold text-[#291f1b] text-sm hover:bg-slate-50 transition-colors select-none">
+              <summary className="flex items-center justify-between gap-4 px-6 py-4 cursor-pointer list-none font-semibold text-[#1C1008] dark:text-[#f0e4d4] text-sm hover:bg-[#1C1008]/5 dark:hover:bg-white/3 transition-colors select-none">
                 <span>{faq.question}</span>
-                <IconChevronDown className="w-4 h-4 text-slate-400 flex-shrink-0 transition-transform group-open:rotate-180" />
+                <IconChevronDown className="w-4 h-4 text-[#1C1008]/40 dark:text-[#9a8070] flex-shrink-0 transition-transform group-open:rotate-180" />
               </summary>
-              <div className="px-6 pb-5 text-sm text-slate-600 leading-relaxed border-t border-slate-100 pt-4">
+              <div className="px-6 pb-5 text-sm text-[#1C1008]/80 dark:text-[#b0a090] leading-relaxed border-t border-[#1C1008]/10 dark:border-white/5 pt-4">
                 {faq.answer}
               </div>
             </details>

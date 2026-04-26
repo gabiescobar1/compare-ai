@@ -47,26 +47,26 @@ export default function DoiForm({ onResult, onProcessStart }) {
   };
 
   return (
-    <div className="bg-white dark:bg-[#2a1c14] rounded-3xl p-8 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] dark:shadow-[0_2px_15px_-3px_rgba(0,0,0,0.3)] border border-slate-200 dark:border-white/8 transition-colors duration-300">
+    <div className="bg-white dark:bg-[#211307] rounded-3xl p-8 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] dark:shadow-[0_2px_15px_-3px_rgba(0,0,0,0.3)] border border-stone-200 dark:border-white/8 transition-colors duration-300">
       <ModelSelector selectedModels={selectedModels} onChange={setSelectedModels} disabled={isProcessing} />
 
-      <label className="block text-slate-700 dark:text-[#c4b09a] text-sm font-bold mb-3">
+      <label className="block text-stone-700 dark:text-[#c4b09a] text-sm font-bold mb-3">
         Insira os identificadores (DOIs) separados por vírgula
       </label>
       <textarea
-        className="w-full bg-slate-50 dark:bg-[#1e1410] text-slate-800 dark:text-[#f0e4d4] border border-slate-300 dark:border-white/10 rounded-2xl p-4 focus:ring-2 focus:ring-[#ff6b00] focus:outline-none transition min-h-[140px] custom-scrollbar font-mono text-sm leading-relaxed placeholder-slate-400 dark:placeholder-[#6a5040]"
+        className="w-full bg-white dark:bg-[#211307] text-stone-800 dark:text-[#f0e4d4] border border-stone-300 dark:border-white/10 rounded-2xl p-4 focus:ring-2 focus:ring-[#ff6b00] focus:outline-none transition shadow-sm font-medium placeholder-stone-400 dark:placeholder-[#6a5040]"
         placeholder={"Ex: 10.1371/journal.pone.0210340,\n10.1371/journal.pone.0202277"}
         value={doisInput}
         onChange={(e) => setDoisInput(e.target.value)}
         disabled={isProcessing}
       />
 
-      <label className="block text-slate-700 dark:text-[#c4b09a] text-sm font-bold mt-6 mb-3">
+      <label className="block text-stone-700 dark:text-[#c4b09a] text-sm font-bold mt-6 mb-3">
         Selecione a Disciplina do Artigo
       </label>
       <div className="relative mb-6">
         <select 
-          className="w-full bg-slate-50 dark:bg-[#1e1410] text-slate-800 dark:text-[#f0e4d4] border border-slate-300 dark:border-white/10 rounded-2xl p-4 focus:ring-2 focus:ring-[#ff6b00] focus:outline-none transition appearance-none cursor-pointer disabled:opacity-50"
+          className="w-full bg-white dark:bg-[#211307] border border-stone-300 dark:border-white/10 text-slate-800 dark:text-[#f0e4d4] text-sm font-bold rounded-xl shadow-sm px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#ff6b00] appearance-none disabled:opacity-50 transition-colors truncate"
           value={selectedDiscipline}
           onChange={(e) => setSelectedDiscipline(e.target.value)}
           disabled={isProcessing}
@@ -87,19 +87,19 @@ export default function DoiForm({ onResult, onProcessStart }) {
       )}
 
       <div className="mt-8 flex flex-col md:flex-row items-center justify-between gap-4">
-        <div className="text-sm font-medium text-slate-600 dark:text-[#9a8070]">
+        <div className="text-sm font-medium text-stone-600 dark:text-[#9a8070]">
           {isProcessing ? (
-             <span className="flex items-center gap-2 text-blue-700 dark:text-blue-400 font-bold">
+             <span className="flex items-center gap-2 text-[#1C1008] dark:text-[#c4b09a] font-bold">
                <IconLoader2 className="animate-spin w-4 h-4"/>
                Processando: {currentDoiIndex} de {totalDois}
-               {countdown > 0 && <span className="text-slate-500 dark:text-[#7a6050] font-normal ml-2">| Aguardando {countdown}s timeout</span>}
+               {countdown > 0 && <span className="text-stone-500 dark:text-[#7a6050] font-normal ml-2">| Aguardando {countdown}s timeout</span>}
              </span>
           ) : ( "Aguardando submissão de dados." )}
         </div>
         <button 
           onClick={handleProcess}
           disabled={isProcessing}
-          className="w-full md:w-auto flex items-center justify-center gap-2 bg-[#ff6b00] hover:opacity-90 text-white font-serif font-bold py-3 px-8 rounded-2xl shadow-sm transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full md:w-auto flex items-center justify-center gap-2 bg-[#ff6b00] hover:bg-gradient-to-br hover:from-[#ff6b00] hover:to-[#ff9100] text-white font-serif font-bold py-3 px-8 rounded-2xl shadow-sm transition-all hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isProcessing ? <IconLoader2 className="animate-spin w-5 h-5"/> : <IconSend className="w-5 h-5"/> }
           {isProcessing ? "Analisando..." : "Proceder com Análise"}

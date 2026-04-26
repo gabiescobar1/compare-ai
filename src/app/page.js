@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react';
+import Link from 'next/link';
 import DoiForm from '@/components/DoiForm';
 import ResultsComparison from '@/components/ResultsComparison';
 
@@ -15,8 +16,12 @@ export default function Home() {
   return (
     <div className="min-h-screen pt-32 pb-20 px-6">
       <header className="flex flex-col items-center text-center max-w-4xl mx-auto mb-4">
-        <h1 className="text-4xl md:text-6xl font-serif font-black text-[#291f1b] leading-tight">
-          Compare AI
+        <h1 className="text-4xl md:text-6xl font-serif font-black leading-tight">
+          <span 
+            className="bg-clip-text text-transparent bg-gradient-to-r from-[#1C1008] to-[#1C1008] hover:to-[#6d4c3d] dark:from-[#f0e4d4] dark:to-[#f0e4d4] dark:hover:to-[#ffb347] transition-all duration-500 cursor-default"
+          >
+            Compare AI
+          </span>
         </h1>
       </header>
 
