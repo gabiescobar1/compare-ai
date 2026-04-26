@@ -1,6 +1,8 @@
 import { Inter, Montserrat } from "next/font/google";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
+import ThemeProvider from "@/components/ThemeProvider";
+import ThemeToggle from "@/components/ThemeToggle";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -15,9 +17,12 @@ export default function RootLayout({ children }) {
   return (
     <html lang="pt-BR" className={`${inter.variable} ${montserrat.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col text-slate-900 font-sans">
-        <Navigation />
-        {children}
-        <Footer />
+        <ThemeProvider>
+          <Navigation />
+          <ThemeToggle />
+          {children}
+          <Footer />
+        </ThemeProvider>
       </body>
     </html>
   );

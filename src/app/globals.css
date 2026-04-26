@@ -1,14 +1,23 @@
 @import "tailwindcss";
 
+/* Dark mode via classe .dark no <html> (Tailwind v4) */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  --background: #f4ebe1; 
-  --foreground: #0f172a; 
+  --background: #f4ebe1;
+  --foreground: #0f172a;
 }
 
 body {
   background: linear-gradient(to bottom, #ffda6a, #f5e3d0, #f4ebe1);
   background-attachment: fixed;
   color: var(--foreground);
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+html.dark body {
+  background: linear-gradient(to bottom, #1c1008, #1f1510, #221812);
+  color: #f0e4d4;
 }
 
 .font-serif {
@@ -39,6 +48,7 @@ a.disabled,
   cursor: not-allowed;
 }
 
+/* Scrollbar light */
 .custom-scrollbar::-webkit-scrollbar {
   width: 8px;
 }
@@ -54,7 +64,18 @@ a.disabled,
   background: #94a3b8;
 }
 
-/* Scrollbar horizontal — ultrafina, quase branca, quase circular */
+/* Scrollbar light — dark override */
+html.dark .custom-scrollbar::-webkit-scrollbar-track {
+  background: #2a1c14;
+}
+html.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #5a3e30;
+}
+html.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #7a5240;
+}
+
+/* Scrollbar horizontal — ultrafina */
 .custom-scrollbar-h {
   scrollbar-width: thin;
   scrollbar-color: #ececee transparent;
@@ -73,4 +94,10 @@ a.disabled,
 }
 .custom-scrollbar-h::-webkit-scrollbar-thumb:hover {
   background: #e0e0e2;
+}
+html.dark .custom-scrollbar-h {
+  scrollbar-color: #5a3e30 transparent;
+}
+html.dark .custom-scrollbar-h::-webkit-scrollbar-thumb {
+  background: #5a3e30;
 }

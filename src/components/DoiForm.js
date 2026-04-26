@@ -47,26 +47,26 @@ export default function DoiForm({ onResult, onProcessStart }) {
   };
 
   return (
-    <div className="bg-white rounded-3xl p-8 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] border border-slate-200">
+    <div className="bg-white dark:bg-[#2a1c14] rounded-3xl p-8 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] dark:shadow-[0_2px_15px_-3px_rgba(0,0,0,0.3)] border border-slate-200 dark:border-white/8 transition-colors duration-300">
       <ModelSelector selectedModels={selectedModels} onChange={setSelectedModels} disabled={isProcessing} />
 
-      <label className="block text-slate-700 text-sm font-bold mb-3">
+      <label className="block text-slate-700 dark:text-[#c4b09a] text-sm font-bold mb-3">
         Insira os identificadores (DOIs) separados por vírgula
       </label>
       <textarea
-        className="w-full bg-slate-50 text-slate-800 border border-slate-300 rounded-2xl p-4 focus:ring-2 focus:ring-[#ff6b00] focus:outline-none transition min-h-[140px] custom-scrollbar font-mono text-sm leading-relaxed"
+        className="w-full bg-slate-50 dark:bg-[#1e1410] text-slate-800 dark:text-[#f0e4d4] border border-slate-300 dark:border-white/10 rounded-2xl p-4 focus:ring-2 focus:ring-[#ff6b00] focus:outline-none transition min-h-[140px] custom-scrollbar font-mono text-sm leading-relaxed placeholder-slate-400 dark:placeholder-[#6a5040]"
         placeholder={"Ex: 10.1371/journal.pone.0210340,\n10.1371/journal.pone.0202277"}
         value={doisInput}
         onChange={(e) => setDoisInput(e.target.value)}
         disabled={isProcessing}
       />
 
-      <label className="block text-slate-700 text-sm font-bold mt-6 mb-3">
+      <label className="block text-slate-700 dark:text-[#c4b09a] text-sm font-bold mt-6 mb-3">
         Selecione a Disciplina do Artigo
       </label>
       <div className="relative mb-6">
         <select 
-          className="w-full bg-slate-50 text-slate-800 border border-slate-300 rounded-2xl p-4 focus:ring-2 focus:ring-[#ff6b00] focus:outline-none transition appearance-none cursor-pointer disabled:opacity-50"
+          className="w-full bg-slate-50 dark:bg-[#1e1410] text-slate-800 dark:text-[#f0e4d4] border border-slate-300 dark:border-white/10 rounded-2xl p-4 focus:ring-2 focus:ring-[#ff6b00] focus:outline-none transition appearance-none cursor-pointer disabled:opacity-50"
           value={selectedDiscipline}
           onChange={(e) => setSelectedDiscipline(e.target.value)}
           disabled={isProcessing}
@@ -76,23 +76,23 @@ export default function DoiForm({ onResult, onProcessStart }) {
           ))}
         </select>
         <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-50">
-           <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+           <svg className="w-5 h-5 text-slate-600 dark:text-[#c4b09a]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
         </div>
       </div>
       
       {errorText && (
-        <div className="flex items-center text-red-700 mt-4 text-sm bg-red-50 border border-red-200 p-3 rounded">
+        <div className="flex items-center text-red-700 dark:text-red-400 mt-4 text-sm bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 p-3 rounded">
           <IconAlertCircle className="w-5 h-5 mr-2" /> {errorText}
         </div>
       )}
 
       <div className="mt-8 flex flex-col md:flex-row items-center justify-between gap-4">
-        <div className="text-sm font-medium text-slate-600">
+        <div className="text-sm font-medium text-slate-600 dark:text-[#9a8070]">
           {isProcessing ? (
-             <span className="flex items-center gap-2 text-blue-700 font-bold">
-               <IconLoader2 className="animate-spin w-4 h-4"/> 
+             <span className="flex items-center gap-2 text-blue-700 dark:text-blue-400 font-bold">
+               <IconLoader2 className="animate-spin w-4 h-4"/>
                Processando: {currentDoiIndex} de {totalDois}
-               {countdown > 0 && <span className="text-slate-500 font-normal ml-2">| Aguardando {countdown}s timeout</span>}
+               {countdown > 0 && <span className="text-slate-500 dark:text-[#7a6050] font-normal ml-2">| Aguardando {countdown}s timeout</span>}
              </span>
           ) : ( "Aguardando submissão de dados." )}
         </div>
