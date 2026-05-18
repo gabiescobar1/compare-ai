@@ -5,6 +5,6 @@ export const DISCIPLINES = [
   { id: 'Edu', label: 'Education' },
   { id: 'Law', label: 'Law' },
   { id: 'Ling', label: 'Linguistics' },
-  { id: 'PolS', label: 'Political Sciences' },
+  { id: 'PolS', label: 'Political Science' },
   { id: 'Psy', label: 'Psychology' },
 ];

@@ -10,6 +10,7 @@ import {
   IconBell,
   IconShieldCheck,
 } from '@tabler/icons-react';
+import LexicalBundlesSettings from '@/components/LexicalBundlesSettings';
 
 export const metadata = {
   title: 'Minha Conta — Compare AI',
@@ -143,6 +144,9 @@ export default function MinhaContaPage() {
              </div>
           </div>
         </div>
+
+        {/* Lexical Bundles Configuration */}
+        <LexicalBundlesSettings />
 
         {/* Settings Groups */}
         <div>

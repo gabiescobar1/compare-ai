@@ -4,6 +4,7 @@ import { IconCoin, IconFileText, IconBulb, IconDownload, IconTrash, IconChevronD
 import { PROVIDERS } from '@/constants/AiModels';
 import { DISCIPLINES } from '@/constants/Disciplines';
 import JSZip from 'jszip';
+import { useLexicalBundles } from '@/contexts/LexicalBundlesContext';
 
 const PROVIDER_STYLES = {
   openai: { headerBg: 'bg-[#e8f8c1] dark:bg-[#2a3a10]', label: 'OpenAI' },
@@ -11,7 +12,52 @@ const PROVIDER_STYLES = {
   claude: { headerBg: 'bg-[#f9dcc4] dark:bg-[#3a2010]', label: 'Anthropic Claude' },
 };
 
-const ModelCard = ({ summary }) => {
+const HighlightedText = ({ text, disciplineLabel }) => {
+  const { bundles } = useLexicalBundles();
+  
+  if (!text || !bundles || Object.keys(bundles).length === 0) return <>{text}</>;
+  
+  let activeBundles = [];
+  if (Array.isArray(bundles)) {
+    activeBundles = bundles;
+  } else {
+    // Busca a disciplina com o nome exato (case insensitive) ou usa 'Geral'
+    const matchingKey = Object.keys(bundles).find(
+      k => k.toLowerCase() === (disciplineLabel || '').toLowerCase()
+    );
+    if (matchingKey) {
+      activeBundles = bundles[matchingKey];
+    } else if (bundles['Geral']) {
+      activeBundles = bundles['Geral'];
+    }
+  }
+
+  if (activeBundles.length === 0) return <>{text}</>;
+
+  const sortedBundles = [...activeBundles].sort((a, b) => b.length - a.length);
+  const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const pattern = sortedBundles.map(escapeRegExp).join('|');
+  const regex = new RegExp(`\\b(${pattern})\\b`, 'gi');
+
+  const parts = text.split(regex);
+  
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (sortedBundles.some(b => b.toLowerCase() === part.toLowerCase())) {
+          return (
+            <mark key={i} className="bg-yellow-200 dark:bg-yellow-500/30 text-inherit px-0.5 rounded font-medium">
+              {part}
+            </mark>
+          );
+        }
+        return part;
+      })}
+    </>
+  );
+};
+
+const ModelCard = ({ summary, disciplineLabel }) => {
   const isError = summary?.content?.includes('ERRO');
   const wordCount = summary?.content ? summary.content.trim().split(/\s+/).filter(Boolean).length : 0;
   const style = PROVIDER_STYLES[summary?.provider] || { headerBg: 'bg-stone-50', label: summary?.provider || 'Desconhecido' };
@@ -59,7 +105,7 @@ const ModelCard = ({ summary }) => {
 
       <div className={`p-5 flex-1 relative ${isError ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400' : 'bg-white dark:bg-[#211307]'}`}>
         <div className="prose text-[13px] prose-slate max-w-none overflow-y-auto max-h-[350px] pr-2 custom-scrollbar text-slate-700 dark:text-[#d4c4b0] text-justify leading-relaxed whitespace-pre-wrap">
-          {summary?.content || "Nenhum conteúdo gerado."}
+          {summary?.content ? <HighlightedText text={summary.content} disciplineLabel={disciplineLabel} /> : "Nenhum conteúdo gerado."}
         </div>
       </div>
       <div className="p-4 border-t border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-[#211307]">
@@ -181,7 +227,7 @@ export default function ResultsComparison({ data, onDelete, defaultExpanded = tr
                 </div>
                 <div className="p-5 flex-1 relative">
                    <div className="prose text-[13px] prose-stone max-w-none overflow-y-auto max-h-[350px] pr-2 custom-scrollbar text-stone-700 dark:text-[#d4c4b0] text-justify leading-relaxed whitespace-pre-wrap">
-                    {data.originalAbstract}
+                    <HighlightedText text={data.originalAbstract} disciplineLabel={disciplineLabel} />
                   </div>
                 </div>
                  <div className="p-4 border-t border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-[#211307]">
@@ -213,7 +259,7 @@ export default function ResultsComparison({ data, onDelete, defaultExpanded = tr
                 <div className="flex flex-wrap justify-center gap-6">
                   {summaries.map((summary, idx) => (
                     <div key={idx} className="w-full sm:w-[calc(50%-12px)] xl:w-[calc(33.333%-16px)]">
-                      <ModelCard summary={summary} />
+                      <ModelCard summary={summary} disciplineLabel={disciplineLabel} />
                     </div>
                   ))}
                 </div>
@@ -222,7 +268,7 @@ export default function ResultsComparison({ data, onDelete, defaultExpanded = tr
                   <div className="flex gap-6" style={{ minWidth: 'max-content' }}>
                     {summaries.map((summary, idx) => (
                       <div key={idx} className="w-[320px] flex-shrink-0">
-                        <ModelCard summary={summary} />
+                        <ModelCard summary={summary} disciplineLabel={disciplineLabel} />
                       </div>
                     ))}
                   </div>

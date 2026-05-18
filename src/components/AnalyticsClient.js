@@ -1,9 +1,89 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { IconChartBar, IconInfoCircle, IconFileText, IconChevronDown } from '@tabler/icons-react';
+import { IconChartBar, IconInfoCircle, IconFileText, IconChevronDown, IconBook2 } from '@tabler/icons-react';
+import { useLexicalBundles } from '@/contexts/LexicalBundlesContext';
+import { DISCIPLINES } from '@/constants/Disciplines';
+import * as XLSX from 'xlsx';
 
 export default function AnalyticsClient({ analyses }) {
+  const { bundles } = useLexicalBundles();
+
+  const bundleStats = useMemo(() => {
+    if (!bundles || Object.keys(bundles).length === 0) return null;
+
+    const stats = {};
+    Object.keys(bundles).forEach(disc => {
+      stats[disc] = {};
+      bundles[disc].forEach(b => {
+        stats[disc][b] = { original: 0, ai: 0 };
+      });
+    });
+
+    analyses.forEach(analysis => {
+      const discLabel = DISCIPLINES.find(d => d.id === analysis.discipline)?.label || analysis.discipline;
+      
+      const matchingKey = Object.keys(bundles).find(
+        k => k.toLowerCase() === (discLabel || '').toLowerCase()
+      );
+
+      if (matchingKey && stats[matchingKey]) {
+        bundles[matchingKey].forEach(bundle => {
+          const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const regex = new RegExp(`\\b(${escapeRegExp(bundle)})\\b`, 'gi');
+          
+          if (analysis.originalAbstract) {
+            const matches = analysis.originalAbstract.match(regex);
+            if (matches) stats[matchingKey][bundle].original += matches.length;
+          }
+
+          if (analysis.summaries) {
+            analysis.summaries.forEach(summary => {
+              if (summary.content && !summary.content.includes('ERRO')) {
+                const matches = summary.content.match(regex);
+                if (matches) stats[matchingKey][bundle].ai += matches.length;
+              }
+            });
+          }
+        });
+      }
+    });
+
+    return stats;
+  }, [analyses, bundles]);
+
+  const handleExportExcel = () => {
+    if (!bundleStats) return;
+
+    const exportData = [];
+
+    Object.entries(bundleStats).forEach(([disc, bStats]) => {
+      Object.entries(bStats).forEach(([bundle, counts]) => {
+        exportData.push({
+          'Disciplina': disc,
+          'Lexical Bundle': bundle,
+          'Frequência (Originais)': counts.original,
+          'Frequência (Gerados por IA)': counts.ai
+        });
+      });
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Frequência de Bundles');
+
+    // Auto-adjust column widths
+    const wscols = [
+      {wch: 25},
+      {wch: 40},
+      {wch: 25},
+      {wch: 30}
+    ];
+    worksheet['!cols'] = wscols;
+
+    XLSX.writeFile(workbook, 'frequencia_lexical_bundles.xlsx');
+  };
+
   const stats = useMemo(() => {
     const providerData = {};
 
@@ -166,6 +246,81 @@ export default function AnalyticsClient({ analyses }) {
            </p>
         </div>
       </div>
+
+      {/* Lexical Bundles Analytics Card */}
+      {bundleStats && Object.keys(bundleStats).length > 0 && (
+        <div className="bg-white dark:bg-[#211307] rounded-3xl border border-stone-200 dark:border-white/8 shadow-sm overflow-hidden">
+          <div className="px-6 py-5 border-b border-stone-100 dark:border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="font-serif font-black text-[#1C1008] dark:text-[#f0e4d4] flex items-center gap-2">
+                <IconBook2 className="w-5 h-5 text-[#ff6b00]" />
+                Análise de Lexical Bundles
+              </h3>
+              <p className="text-xs text-stone-500 dark:text-[#9a8070] mt-1">
+                Frequência de aparição dos seus bundles por disciplina.
+              </p>
+            </div>
+            <div className="flex items-center gap-4">
+               <button 
+                  onClick={handleExportExcel}
+                  className="flex items-center gap-1.5 text-xs font-bold py-1.5 px-3 rounded-lg border border-stone-200 dark:border-white/10 bg-stone-50 hover:bg-stone-100 dark:bg-[#3a2a1e] dark:hover:bg-[#4a3a2e] text-stone-700 dark:text-[#c4b09a] transition-colors"
+               >
+                  <IconFileText className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
+                  Exportar XLSX
+               </button>
+               <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest hidden md:flex">
+                 <div className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-stone-300 dark:bg-stone-600"></span>
+                    <span className="text-stone-500 dark:text-[#9a8070]">Original</span>
+                 </div>
+                 <div className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#ff6b00]"></span>
+                    <span className="text-[#ff6b00]">AI Generated</span>
+                 </div>
+               </div>
+            </div>
+          </div>
+
+          <div className="p-6 space-y-4">
+            {Object.entries(bundleStats).map(([disc, bStats]) => {
+              const bundlesArray = Object.entries(bStats).sort((a, b) => (b[1].original + b[1].ai) - (a[1].original + a[1].ai));
+              if (bundlesArray.length === 0) return null;
+
+              return (
+                <details key={disc} className="group overflow-hidden border border-transparent hover:border-stone-100 dark:hover:border-white/5 rounded-xl transition-all" open>
+                  <summary className="list-none cursor-pointer p-3 bg-stone-50/50 dark:bg-[#1C1008]/40 rounded-lg mb-1 flex items-center justify-between border border-transparent group-open:border-stone-100 dark:group-open:border-white/5">
+                    <span className="text-xs font-black text-[#1C1008] dark:text-[#f0e4d4] uppercase tracking-wider flex items-center gap-1.5">
+                      <IconChevronDown className="w-3.5 h-3.5 text-[#ff6b00] transition-transform group-open:rotate-180" />
+                      {disc}
+                    </span>
+                    <span className="text-[9px] font-bold text-stone-400 dark:text-[#6a5040] uppercase bg-white dark:bg-[#211307] px-1.5 py-0.5 rounded-md shadow-sm border border-stone-100 dark:border-white/5">
+                      {bundlesArray.length} bundles
+                    </span>
+                  </summary>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 px-1 pb-3 pt-1">
+                    {bundlesArray.map(([bundle, counts]) => (
+                      <div key={bundle} className="bg-white dark:bg-[#211307] border border-stone-200 dark:border-white/5 p-2 rounded-lg flex items-center justify-between gap-2 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+                        <span className="text-[11px] font-medium text-stone-700 dark:text-[#d4c4b0] truncate" title={bundle}>
+                          {bundle}
+                        </span>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <div className="flex items-center justify-center min-w-[20px] h-5 px-1 bg-stone-100 dark:bg-stone-800 rounded text-[9px] font-bold text-stone-600 dark:text-stone-400" title="Originais">
+                            {counts.original}
+                          </div>
+                          <div className="flex items-center justify-center min-w-[20px] h-5 px-1 bg-[#ff6b00]/10 rounded text-[9px] font-bold text-[#ff6b00]" title="IA">
+                            {counts.ai}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

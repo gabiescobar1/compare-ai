@@ -3,6 +3,7 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import ThemeProvider from "@/components/ThemeProvider";
 import ThemeToggle from "@/components/ThemeToggle";
+import { LexicalBundlesProvider } from "@/contexts/LexicalBundlesContext";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -18,9 +19,11 @@ export default function RootLayout({ children }) {
     <html lang="pt-BR" className={`${inter.variable} ${montserrat.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col text-slate-900 font-sans">
         <ThemeProvider>
-          <Navigation />
-          {children}
-          <Footer />
+          <LexicalBundlesProvider>
+            <Navigation />
+            {children}
+            <Footer />
+          </LexicalBundlesProvider>
         </ThemeProvider>
       </body>
     </html>
