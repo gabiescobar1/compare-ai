@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { processSingleDoi } from '@/app/actions';
 import { IconLoader2, IconSend, IconAlertCircle } from '@tabler/icons-react';
 import ModelSelector from '@/components/ModelSelector';
@@ -19,6 +19,20 @@ export default function DoiForm({ onResult, onProcessStart }) {
   const [selectedModels, setSelectedModels] = useState([
     { provider: 'openai', modelId: AI_MODELS.OPENAI[0].id },
   ]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('compare-ai-selected-models');
+    if (saved) {
+      try {
+        setSelectedModels(JSON.parse(saved));
+      } catch (e) {}
+    }
+  }, []);
+
+  const handleSelectedModelsChange = (models) => {
+    setSelectedModels(models);
+    localStorage.setItem('compare-ai-selected-models', JSON.stringify(models));
+  };
 
   const handleProcess = async () => {
     if (!doisInput.trim()) { setErrorText("Por favor, insira ao menos um DOI."); return; }
@@ -48,7 +62,7 @@ export default function DoiForm({ onResult, onProcessStart }) {
 
   return (
     <div className="bg-white dark:bg-[#211307] rounded-3xl p-8 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] dark:shadow-[0_2px_15px_-3px_rgba(0,0,0,0.3)] border border-stone-200 dark:border-white/8 transition-colors duration-300">
-      <ModelSelector selectedModels={selectedModels} onChange={setSelectedModels} disabled={isProcessing} />
+      <ModelSelector selectedModels={selectedModels} onChange={handleSelectedModelsChange} disabled={isProcessing} />
 
       <label className="block text-stone-700 dark:text-[#c4b09a] text-sm font-bold mb-3">
         Insira os identificadores (DOIs) separados por vírgula

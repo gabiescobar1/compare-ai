@@ -1,13 +1,64 @@
 'use client';
 
-import React, { useMemo } from 'react';
-import { IconChartBar, IconInfoCircle, IconFileText, IconChevronDown, IconBook2 } from '@tabler/icons-react';
+import React, { useMemo, useState } from 'react';
+import { IconChartBar, IconInfoCircle, IconFileText, IconChevronDown, IconBook2, IconLayoutDashboard } from '@tabler/icons-react';
 import { useLexicalBundles } from '@/contexts/LexicalBundlesContext';
 import { DISCIPLINES } from '@/constants/Disciplines';
 import * as XLSX from 'xlsx';
 
 export default function AnalyticsClient({ analyses }) {
   const { bundles } = useLexicalBundles();
+  const [activeTab, setActiveTab] = useState('palavras');
+
+  const wordStats = useMemo(() => {
+    const stats = {};
+    analyses.forEach(a => {
+      const discLabel = DISCIPLINES.find(d => d.id === a.discipline)?.label || a.discipline || 'Desconhecida';
+      if (!stats[discLabel]) {
+        stats[discLabel] = {
+          originalWords: 0,
+          originalCount: 0,
+          aiProviders: {},
+        };
+      }
+      
+      if (a.originalAbstract) {
+        const wCount = a.originalAbstract.trim().split(/\s+/).filter(Boolean).length;
+        if (wCount > 0) {
+          stats[discLabel].originalWords += wCount;
+          stats[discLabel].originalCount += 1;
+        }
+      }
+
+      if (a.summaries) {
+        a.summaries.forEach(s => {
+          if (s.content && !s.content.includes('ERRO')) {
+            const cCount = s.content.trim().split(/\s+/).filter(Boolean).length;
+            if (cCount > 0) {
+              const provider = s.provider || 'Desconhecido';
+              if (!stats[discLabel].aiProviders[provider]) {
+                stats[discLabel].aiProviders[provider] = { words: 0, count: 0 };
+              }
+              stats[discLabel].aiProviders[provider].words += cCount;
+              stats[discLabel].aiProviders[provider].count += 1;
+            }
+          }
+        });
+      }
+    });
+
+    return Object.entries(stats).map(([disc, data]) => {
+      const providerAverages = {};
+      Object.entries(data.aiProviders).forEach(([p, pData]) => {
+        providerAverages[p] = Math.round(pData.words / pData.count);
+      });
+      return {
+        discipline: disc,
+        avgOriginal: data.originalCount > 0 ? Math.round(data.originalWords / data.originalCount) : 0,
+        providerAverages,
+      };
+    }).sort((a, b) => b.avgOriginal - a.avgOriginal);
+  }, [analyses]);
 
   const bundleStats = useMemo(() => {
     if (!bundles || Object.keys(bundles).length === 0) return null;
@@ -139,7 +190,7 @@ export default function AnalyticsClient({ analyses }) {
   const maxAverage = Math.max(...stats.map(s => s.average), 1);
 
   return (
-    <div className="max-w-4xl mx-auto space-y-12">
+    <div className="max-w-7xl mx-auto space-y-12">
       {/* Header Info */}
       <div className="bg-[#1C1008] dark:bg-[#211307] text-white rounded-3xl p-8 shadow-xl relative overflow-hidden">
         <div className="absolute top-0 right-0 p-8 opacity-10">
@@ -159,7 +210,69 @@ export default function AnalyticsClient({ analyses }) {
         </div>
       </div>
 
-      {/* Main Chart Card */}
+      {/* Tabs Navigation */}
+      <div className="flex justify-center">
+        <div className="inline-flex bg-white dark:bg-[#211307] p-1.5 rounded-2xl border border-stone-200 dark:border-white/8 shadow-sm">
+          <button 
+            onClick={() => setActiveTab('palavras')}
+            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'palavras' ? 'bg-[#ff6b00] text-white shadow-md' : 'text-stone-500 hover:text-stone-800 dark:text-[#9a8070] dark:hover:text-[#f0e4d4]'}`}
+          >
+            <IconFileText className="w-4 h-4" /> Comparativo de Palavras
+          </button>
+          <button 
+            onClick={() => setActiveTab('bundles')}
+            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'bundles' ? 'bg-[#ff6b00] text-white shadow-md' : 'text-stone-500 hover:text-stone-800 dark:text-[#9a8070] dark:hover:text-[#f0e4d4]'}`}
+          >
+            <IconBook2 className="w-4 h-4" /> Lexical Bundles
+          </button>
+        </div>
+      </div>
+
+      {/* Tab: Palavras */}
+      {activeTab === 'palavras' && (
+        <div className="space-y-8">
+          {/* Média de Palavras Original vs AI por Disciplina */}
+          <div className="bg-white dark:bg-[#211307] rounded-3xl border border-stone-200 dark:border-white/8 shadow-sm overflow-hidden">
+            <div className="px-8 py-6 border-b border-stone-100 dark:border-white/5 flex items-center justify-between">
+              <h3 className="font-serif font-black text-[#1C1008] dark:text-[#f0e4d4] flex items-center gap-2">
+                <IconLayoutDashboard className="w-5 h-5 text-[#ff6b00]" />
+                Visão Geral: Tamanho dos Abstracts por Disciplina
+              </h3>
+            </div>
+            <div className="p-8">
+              {wordStats.length === 0 ? (
+                <div className="py-10 text-center">
+                  <p className="text-stone-500 dark:text-[#9a8070] font-medium">Sem dados de comparação no momento.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {wordStats.map((stat, idx) => (
+                    <div key={idx} className="bg-stone-50/50 dark:bg-white/2 border border-stone-200 dark:border-white/5 p-5 rounded-2xl flex flex-col gap-4">
+                      <h4 className="font-bold text-[#1C1008] dark:text-[#f0e4d4] text-sm truncate" title={stat.discipline}>{stat.discipline}</h4>
+                      <div className="flex flex-col gap-2 text-sm font-mono text-stone-600 dark:text-[#c4b09a]">
+                        <div className="flex items-center justify-between bg-white dark:bg-[#1e1410] px-3 py-2 rounded-xl shadow-sm border border-stone-100 dark:border-white/5">
+                          <span>Originais (Média)</span>
+                          <span className="font-black text-[#ff6b00]">{stat.avgOriginal}</span>
+                        </div>
+                        {Object.entries(stat.providerAverages).map(([provider, avg]) => (
+                          <div key={provider} className="flex items-center justify-between bg-white dark:bg-[#1e1410] px-3 py-2 rounded-xl shadow-sm border border-stone-100 dark:border-white/5">
+                            <span className="capitalize">{provider === 'gemini' ? 'Google Gemini' : provider === 'claude' ? 'Anthropic Claude' : provider === 'openai' ? 'OpenAI' : provider} (Média)</span>
+                            <span className="font-black text-blue-600 dark:text-blue-400">{avg}</span>
+                          </div>
+                        ))}
+                        <div className="flex items-center justify-between bg-white dark:bg-[#1e1410] px-3 py-2 rounded-xl shadow-sm border border-stone-100 dark:border-white/5 opacity-50">
+                          <span>Média da Área</span>
+                          <span className="font-black">Em breve</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Main Chart Card (Existente) */}
       <div className="bg-white dark:bg-[#211307] rounded-3xl border border-stone-200 dark:border-white/8 shadow-sm overflow-hidden">
         <div className="px-8 py-6 border-b border-stone-100 dark:border-white/5 flex items-center justify-between">
           <h3 className="font-serif font-black text-[#1C1008] dark:text-[#f0e4d4] flex items-center gap-2">
@@ -246,9 +359,11 @@ export default function AnalyticsClient({ analyses }) {
            </p>
         </div>
       </div>
+      </div>
+      )}
 
-      {/* Lexical Bundles Analytics Card */}
-      {bundleStats && Object.keys(bundleStats).length > 0 && (
+      {/* Tab: Lexical Bundles */}
+      {activeTab === 'bundles' && bundleStats && Object.keys(bundleStats).length > 0 && (
         <div className="bg-white dark:bg-[#211307] rounded-3xl border border-stone-200 dark:border-white/8 shadow-sm overflow-hidden">
           <div className="px-6 py-5 border-b border-stone-100 dark:border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -287,7 +402,7 @@ export default function AnalyticsClient({ analyses }) {
               if (bundlesArray.length === 0) return null;
 
               return (
-                <details key={disc} className="group overflow-hidden border border-transparent hover:border-stone-100 dark:hover:border-white/5 rounded-xl transition-all" open>
+                <details key={disc} className="group overflow-hidden border border-transparent hover:border-stone-100 dark:hover:border-white/5 rounded-xl transition-all">
                   <summary className="list-none cursor-pointer p-3 bg-stone-50/50 dark:bg-[#1C1008]/40 rounded-lg mb-1 flex items-center justify-between border border-transparent group-open:border-stone-100 dark:group-open:border-white/5">
                     <span className="text-xs font-black text-[#1C1008] dark:text-[#f0e4d4] uppercase tracking-wider flex items-center gap-1.5">
                       <IconChevronDown className="w-3.5 h-3.5 text-[#ff6b00] transition-transform group-open:rotate-180" />

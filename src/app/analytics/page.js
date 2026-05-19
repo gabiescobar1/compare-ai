@@ -14,7 +14,7 @@ export default async function AnalyticsPage() {
 
   return (
     <div className="min-h-screen pt-32 pb-20 px-6">
-      <header className="flex flex-col items-center text-center max-w-4xl mx-auto mb-16">
+      <header className="flex flex-col items-center text-center max-w-7xl mx-auto mb-16">
         <h1 className="text-4xl md:text-5xl font-serif font-black text-[#1C1008] dark:text-[#f0e4d4] tracking-tight">
           Analytics
         </h1>

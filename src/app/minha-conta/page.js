@@ -46,7 +46,7 @@ const settingGroups = [
 export default function MinhaContaPage() {
   return (
     <div className="min-h-screen pt-28 pb-24 px-6">
-      <div className="max-w-4xl mx-auto space-y-10">
+      <div className="max-w-7xl mx-auto space-y-10">
 
         {/* Banner "Em breve" */}
         <div className="bg-[#1C1008] dark:bg-[#1a0e08] text-white rounded-2xl px-6 py-5 flex items-center gap-4 shadow-md border border-transparent dark:border-white/5">

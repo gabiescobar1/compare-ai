@@ -24,68 +24,68 @@ const steps = [
     icon: IconSearch,
     title: 'Cole o DOI do artigo',
     description:
-      'Na página inicial, localize o campo de busca e insira o DOI (Digital Object Identifier) do artigo científico. Você pode inserir múltiplos DOIs ao mesmo tempo, bastando separá-los por vírgula (Ex: 10.1001/xxx, 10.1002/yyy).',
-    tip: 'Você encontra o DOI na página do artigo ou nas bases de dados como PubMed, PLOS ONE e Scopus.',
+      'Na página inicial, insira o DOI (Digital Object Identifier) do artigo científico e selecione a Disciplina acadêmica correspondente. Você pode inserir múltiplos DOIs ao mesmo tempo, separando-os por vírgula.',
+    tip: 'A disciplina escolhida será usada para identificar e destacar os Lexical Bundles específicos dessa área.',
   },
   {
     number: '02',
     icon: IconRobot,
     title: 'Selecione os modelos de IA',
     description:
-      'Escolha de 1 a 6 modelos de inteligência artificial para gerar os resumos. Cada provedor (OpenAI, Anthropic, Google…) oferece modelos com características distintas de linguagem e custo.',
+      'Escolha de 1 a 6 modelos de inteligência artificial para gerar os resumos. Cada provedor (OpenAI, Anthropic, Google…) oferece opções com diferentes características de linguagem e custo.',
     tip: 'Compare modelos de provedores diferentes para obter perspectivas variadas sobre o mesmo artigo.',
   },
   {
     number: '03',
     icon: IconPlayerPlay,
-    title: 'Clique em Analisar',
+    title: 'Clique em Proceder com Análise',
     description:
-      'Após selecionar os modelos, clique no botão "Analisar". A plataforma irá buscar o artigo pelo DOI, extrair o abstract original e enviá-lo para cada modelo selecionado simultaneamente.',
-    tip: 'O tempo de resposta varia conforme o número de modelos e a disponibilidade das APIs. Em média leva entre 10 e 30 segundos.',
+      'Após selecionar os modelos e a disciplina, clique em "Proceder com Análise". A plataforma buscará o artigo, extrairá o abstract original e o enviará para todos os modelos selecionados simultaneamente.',
+    tip: 'O processamento agora é feito em paralelo, garantindo resultados rápidos mesmo ao selecionar vários modelos.',
   },
   {
     number: '04',
     icon: IconLayoutColumns,
     title: 'Compare os resultados',
     description:
-      'Visualize os resumos gerados lado a lado. Cada card exibe o texto do modelo, a quantidade de tokens consumidos e o custo estimado da requisição. Você pode fazer o download do resumo em formato de texto.',
-    tip: 'Preste atenção à profundidade, ao vocabulário e ao foco de cada modelo — eles podem destacar aspectos diferentes do mesmo artigo.',
+      'Visualize os resumos gerados lado a lado. Caso você tenha cadastrado Lexical Bundles na página "Minha Conta", as expressões correspondentes à disciplina serão destacadas em amarelo automaticamente no texto.',
+    tip: 'Você pode baixar cada resumo individualmente em formato .txt ou todos os resumos de um artigo em um arquivo .zip.',
   },
   {
     number: '05',
     icon: IconHistory,
-    title: 'Acesse o Histórico',
+    title: 'Histórico e Analytics',
     description:
-      'Cada análise realizada é salva automaticamente. Na página "Histórico" você pode revisitar análises anteriores, filtrar por DOI, disciplina ou data, e fazer o download dos resumos.',
-    tip: 'Use o campo de busca por DOI no Histórico para encontrar rapidamente uma análise específica.',
+      'Cada análise é salva automaticamente. Na página "Histórico" você pode revisitar e baixar análises passadas. Na página "Analytics", você acessa estatísticas detalhadas de uso e exporta planilhas com a frequência dos Lexical Bundles.',
+    tip: 'Acompanhe na página Analytics quais modelos tendem a ser mais concisos e quais bundles são mais gerados pelas IAs.',
   },
 ];
 
 const faqs = [
   {
+    question: 'O que são Lexical Bundles e como utilizá-los?',
+    answer:
+      'Lexical Bundles são sequências de palavras que ocorrem frequentemente em textos de uma disciplina específica (ex: "no presente estudo"). Na página "Minha Conta", você pode fazer o upload de uma planilha Excel (.xlsx) contendo essas expressões, e a plataforma passará a destacá-las nos resumos gerados, além de contabilizar sua frequência no Analytics.',
+  },
+  {
     question: 'Preciso criar uma conta para usar o Compare AI?',
     answer:
-      'Atualmente não é necessário criar uma conta. A plataforma está disponível para uso direto. Em breve, um sistema de login permitirá salvar análises vinculadas ao seu perfil.',
+      'Atualmente não é necessário criar uma conta. A plataforma salva seus Lexical Bundles, histórico e configurações no seu navegador localmente. Em breve, um sistema de nuvem permitirá sincronizar seus dados.',
   },
   {
     question: 'O que é um DOI e onde encontro o do meu artigo?',
     answer:
-      'DOI (Digital Object Identifier) é um identificador permanente para documentos digitais. Você o encontra na página do artigo nas bases PubMed, PLOS ONE, Scopus, Web of Science e outras. Geralmente aparece no início do artigo, no formato "https://doi.org/10.XXXX/XXXXX" ou simplesmente "10.XXXX/XXXXX".',
+      'DOI (Digital Object Identifier) é um identificador permanente para documentos digitais. Você o encontra na página do artigo nas bases PubMed, PLOS ONE, Scopus, etc. Geralmente no formato "10.XXXX/XXXXX".',
   },
   {
     question: 'Qual a diferença entre os modelos de IA disponíveis?',
     answer:
-      'Cada modelo foi treinado com abordagens e dados diferentes. Modelos da OpenAI (GPT-4o), Anthropic (Claude) e Google (Gemini) possuem estilos de escrita, custos por token e capacidades analíticas distintas. Comparar múltiplos modelos ajuda a identificar nuances e convergências na interpretação do texto científico.',
+      'Cada modelo foi treinado com abordagens diferentes. Modelos da OpenAI (GPT), Anthropic (Claude) e Google (Gemini) possuem estilos de escrita, custos e capacidades analíticas distintas.',
   },
   {
     question: 'Quanto custa usar a plataforma?',
     answer:
-      'O Compare AI por si só é gratuito. Os custos exibidos nos resultados referem-se ao consumo das APIs dos modelos de IA, calculado por milhão de tokens. Os valores são estimativas baseadas nas tabelas públicas de preço de cada provedor.',
-  },
-  {
-    question: 'Minha análise ficou salva? Por quanto tempo?',
-    answer:
-      'Sim, todas as análises são salvas no banco de dados da plataforma e podem ser acessadas na página "Histórico" a qualquer momento, sem prazo de expiração definido.',
+      'O Compare AI é gratuito. Os custos exibidos nos resultados são apenas estimativas do valor que seria gasto nas APIs oficiais dos modelos de IA, calculado por quantidade de tokens.',
   },
 ];
 
@@ -93,7 +93,7 @@ export default function InstrucoesPage() {
   return (
     <div className="min-h-screen pt-28 pb-24 px-6">
       {/* Hero */}
-      <header className="max-w-3xl mx-auto text-center mb-20">
+      <header className="max-w-7xl mx-auto text-center mb-20">
         <div className="inline-flex items-center gap-2 bg-[#ff6b00]/10 text-[#ff6b00] text-xs font-black uppercase tracking-widest px-4 py-2 rounded-full mb-6">
           <IconSparkles className="w-3.5 h-3.5" />
           Guia de uso
@@ -108,7 +108,7 @@ export default function InstrucoesPage() {
       </header>
 
       {/* Aviso de API Keys — Em breve */}
-      <div className="max-w-4xl mx-auto mb-12">
+      <div className="max-w-7xl mx-auto mb-12">
         <div className="bg-[#1C1008] dark:bg-[#1a0e08] text-white rounded-3xl p-6 md:p-8 flex flex-col md:flex-row items-center gap-6 shadow-xl border border-transparent dark:border-white/5 relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
             <IconSettings className="w-24 h-24 -mr-8 -mt-8" />
@@ -130,7 +130,7 @@ export default function InstrucoesPage() {
       </div>
 
       {/* Steps */}
-      <section className="max-w-4xl mx-auto mb-24">
+      <section className="max-w-7xl mx-auto mb-24">
         <div className="relative">
           {/* Vertical connector line */}
           <div className="absolute left-[2.85rem] top-12 bottom-12 w-px bg-gradient-to-b from-[#ff6b00]/40 via-[#ff6b00]/20 to-transparent hidden md:block" />
@@ -176,7 +176,7 @@ export default function InstrucoesPage() {
       </section>
 
       {/* FAQ */}
-      <section className="max-w-3xl mx-auto">
+      <section className="max-w-7xl mx-auto">
         <div className="text-center mb-10">
           <h2 className="text-2xl font-serif font-black text-[#1C1008] dark:text-[#f0e4d4]">Dúvidas comuns</h2>
         </div>

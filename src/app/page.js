@@ -15,8 +15,8 @@ export default function Home() {
 
   return (
     <div className="min-h-screen pt-32 pb-20 px-6">
-      <header className="flex flex-col items-center text-center max-w-4xl mx-auto mb-4">
-        <h1 className="text-4xl md:text-6xl font-serif font-black leading-tight">
+      <header className="flex flex-col items-center text-center max-w-7xl mx-auto mb-4">
+        <h1 className="text-5xl md:text-7xl lg:text-[5.5rem] font-serif font-black leading-none tracking-tight mb-2">
           <span 
             className="bg-clip-text text-transparent bg-gradient-to-r from-[#1C1008] to-[#1C1008] hover:to-[#6d4c3d] dark:from-[#f0e4d4] dark:to-[#f0e4d4] dark:hover:to-[#ffb347] transition-all duration-500 cursor-default"
           >
@@ -26,7 +26,7 @@ export default function Home() {
       </header>
 
       <main className="max-w-7xl mx-auto space-y-16">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <DoiForm onResult={handleResultAdded} onProcessStart={handleProcessStart} />
         </div>
 

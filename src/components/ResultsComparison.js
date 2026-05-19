@@ -1,6 +1,6 @@
 'use client';
 import React, { useState } from 'react';
-import { IconCoin, IconFileText, IconBulb, IconDownload, IconTrash, IconChevronDown, IconBook2, IconPackage } from '@tabler/icons-react';
+import { IconCoin, IconFileText, IconBulb, IconDownload, IconTrash, IconChevronDown, IconBook2, IconPackage, IconCopy, IconCheck } from '@tabler/icons-react';
 import { PROVIDERS } from '@/constants/AiModels';
 import { DISCIPLINES } from '@/constants/Disciplines';
 import JSZip from 'jszip';
@@ -14,8 +14,13 @@ const PROVIDER_STYLES = {
 
 const HighlightedText = ({ text, disciplineLabel }) => {
   const { bundles } = useLexicalBundles();
+  const [mounted, setMounted] = useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
   
-  if (!text || !bundles || Object.keys(bundles).length === 0) return <>{text}</>;
+  if (!mounted || !text || !bundles || Object.keys(bundles).length === 0) return <>{text}</>;
   
   let activeBundles = [];
   if (Array.isArray(bundles)) {
@@ -129,6 +134,7 @@ export default function ResultsComparison({ data, onDelete, defaultExpanded = tr
   if (!data) return null;
 
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+  const [copiedDoi, setCopiedDoi] = useState(false);
   const summaries = data.summaries || [];
   const wordCount = data.originalAbstract ? data.originalAbstract.trim().split(/\s+/).filter(Boolean).length : 0;
   const disciplineLabel = DISCIPLINES.find(d => d.id === data.discipline)?.label || data.discipline || '—';
@@ -160,9 +166,28 @@ export default function ResultsComparison({ data, onDelete, defaultExpanded = tr
       >
         <div className="flex-1 min-w-0">
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-2">
-            <h2 className="text-xl font-serif font-black text-[#1C1008] shrink-0">
-              <span className="text-[#ff6b00] bg-[#ff6b00]/10 px-2 py-0.5 rounded">{data.doi}</span>
-            </h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-serif font-black text-[#1C1008] shrink-0">
+                <span 
+                  className="text-[#ff6b00] bg-[#ff6b00]/10 px-2 py-0.5 rounded select-text cursor-text"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {data.doi}
+                </span>
+              </h2>
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigator.clipboard.writeText(data.doi);
+                  setCopiedDoi(true);
+                  setTimeout(() => setCopiedDoi(false), 2000);
+                }}
+                className="p-1.5 bg-white/50 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 rounded-md transition-colors text-slate-400 hover:text-slate-700 dark:hover:text-[#f0e4d4] border border-slate-200 dark:border-white/10"
+                title="Copiar DOI"
+              >
+                {copiedDoi ? <IconCheck className="w-4 h-4 text-green-500" /> : <IconCopy className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-stone-500 dark:text-[#9a8070]">
             <span className="font-bold text-stone-600 dark:text-[#c4b09a]" title={data.title}>{data.title}</span>
@@ -274,6 +299,35 @@ export default function ResultsComparison({ data, onDelete, defaultExpanded = tr
                   </div>
                 </div>
               )}
+
+              {/* Box de Comparação de Palavras */}
+              <div className="bg-slate-50 dark:bg-[#1e1410] border border-slate-200 dark:border-white/8 rounded-xl p-4 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+                <div className="flex items-center gap-2">
+                  <IconFileText className="w-5 h-5 text-stone-400 dark:text-[#6a5040]" />
+                  <span className="text-sm font-bold text-slate-700 dark:text-[#c4b09a]">Comparativo de Palavras</span>
+                </div>
+                <div className="flex flex-wrap items-center gap-3 text-xs font-mono text-stone-600 dark:text-[#9a8070]">
+                  <div className="flex items-center gap-1.5 bg-white dark:bg-[#211307] px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-white/5 shadow-sm" title="Abstract Original">
+                    <span className="font-bold">Original:</span>
+                    <span className={wordCount > 0 ? "text-[#ff6b00]" : ""}>{wordCount}</span>
+                  </div>
+                  {summaries.map((summary, idx) => {
+                    if (!summary?.content || summary.content.includes('ERRO')) return null;
+                    const cWordCount = summary.content.trim().split(/\s+/).filter(Boolean).length;
+                    const providerLabel = PROVIDER_STYLES[summary.provider]?.label || summary.provider;
+                    return (
+                      <div key={idx} className="flex items-center gap-1.5 bg-white dark:bg-[#211307] px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-white/5 shadow-sm">
+                        <span className="font-bold">{providerLabel}:</span>
+                        <span className={cWordCount > wordCount ? "text-red-500" : "text-green-600 dark:text-green-400"}>{cWordCount}</span>
+                      </div>
+                    );
+                  })}
+                  <div className="flex items-center gap-1.5 bg-white dark:bg-[#211307] px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-white/5 shadow-sm text-stone-400 dark:text-stone-500" title="Média da Disciplina (Em breve na planilha)">
+                    <span className="font-bold">Média da Disciplina:</span>
+                    <span>N/A</span>
+                  </div>
+                </div>
+              </div>
 
               {/* Botão de baixar todos os resumos da IA em ZIP */}
               {summaries.some(s => s?.content && !s.content.includes('ERRO')) && (

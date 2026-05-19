@@ -25,25 +25,20 @@ export class ArticleProcessorService {
 
       const article = await this.plosApi.fetchArticle(doi);
 
-      // Processar cada modelo selecionado sequencialmente com delay
-      const summariesResults = [];
-      for (let i = 0; i < selectedModels.length; i++) {
-        const { provider, modelId } = selectedModels[i];
-        const result = await this.aiService.summarize(provider, modelId, article.title, article.bodyText);
-        summariesResults.push({
-          provider,
-          model_id: modelId,
-          content: result.content,
-          input_tokens: result.inputTokens,
-          output_tokens: result.outputTokens,
-          cost: result.cost,
-        });
-
-        // Delay entre chamadas para rate-limiting (exceto última)
-        if (i < selectedModels.length - 1) {
-          await this.sleep(5000);
-        }
-      }
+      // Processar todos os modelos selecionados em paralelo
+      const summariesResults = await Promise.all(
+        selectedModels.map(async ({ provider, modelId }) => {
+          const result = await this.aiService.summarize(provider, modelId, article.title, article.bodyText);
+          return {
+            provider,
+            model_id: modelId,
+            content: result.content,
+            input_tokens: result.inputTokens,
+            output_tokens: result.outputTokens,
+            cost: result.cost,
+          };
+        })
+      );
 
       // Salvar no banco
       let savedToDb = false;
