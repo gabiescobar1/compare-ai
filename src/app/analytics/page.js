@@ -15,10 +15,10 @@ export default async function AnalyticsPage() {
   return (
     <div className="min-h-screen pt-32 pb-20 px-6">
       <header className="flex flex-col items-center text-center max-w-7xl mx-auto mb-16">
-        <h1 className="text-4xl md:text-5xl font-serif font-black text-[#1C1008] dark:text-[#f0e4d4] tracking-tight">
+        <h1 className="text-4xl md:text-5xl font-serif font-black text-ink dark:text-parchment tracking-tight">
           Analytics
         </h1>
-        <div className="h-1.5 w-24 bg-[#ff6b00] rounded-full mt-4"></div>
+        <div className="h-1.5 w-24 bg-accent rounded-full mt-4"></div>
       </header>
 
       <AnalyticsClient analyses={analyses} />

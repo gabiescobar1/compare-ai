@@ -16,8 +16,8 @@ export default function ThemeToggle() {
         flex items-center justify-center
         border transition-all duration-200
         ${dark
-          ? 'border-[#f0e4d4]/20 text-[#f0e4d4]/70 hover:bg-[#f0e4d4]/10 hover:text-[#f0e4d4]'
-          : 'border-[#1C1008]/15 text-[#1C1008]/50 hover:bg-[#1C1008]/6 hover:text-[#1C1008]'
+          ? 'border-parchment/20 text-parchment/70 hover:bg-parchment/10 hover:text-parchment'
+          : 'border-ink/15 text-ink/50 hover:bg-ink/6 hover:text-ink'
         }
       `}
     >

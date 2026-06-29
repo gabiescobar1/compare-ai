@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { IconChartBar, IconInfoCircle, IconFileText, IconChevronDown, IconBook2, IconLayoutDashboard } from '@tabler/icons-react';
+import { IconInfoCircle, IconFileText, IconChevronDown, IconBook2, IconLayoutDashboard } from '@tabler/icons-react';
 import { useLexicalBundles } from '@/contexts/LexicalBundlesContext';
 import { DISCIPLINES } from '@/constants/Disciplines';
 import * as XLSX from 'xlsx';
 import LexicalBundlesSettings from './LexicalBundlesSettings';
+import DisciplineAnalysis from './DisciplineAnalysis';
 
 export default function AnalyticsClient({ analyses }) {
   const { bundles } = useLexicalBundles();
@@ -49,13 +50,18 @@ export default function AnalyticsClient({ analyses }) {
     });
 
     return Object.entries(stats).map(([disc, data]) => {
-      const providerAverages = {};
-      Object.entries(data.aiProviders).forEach(([p, pData]) => {
-        providerAverages[p] = Math.round(pData.words / pData.count);
-      });
+      const providerEntries = Object.entries(data.aiProviders);
+      const providerAverages = Object.fromEntries(
+        providerEntries.map(([p, pData]) => [p, Math.round(pData.words / pData.count)])
+      );
+      const aiWords = providerEntries.reduce((s, [, pd]) => s + pd.words, 0);
+      const aiCount = providerEntries.reduce((s, [, pd]) => s + pd.count, 0);
+      const totalWords = data.originalWords + aiWords;
+      const totalCount = data.originalCount + aiCount;
       return {
         discipline: disc,
         avgOriginal: data.originalCount > 0 ? Math.round(data.originalWords / data.originalCount) : 0,
+        avgOverall: totalCount > 0 ? Math.round(totalWords / totalCount) : 0,
         providerAverages,
       };
     }).sort((a, b) => b.avgOriginal - a.avgOriginal);
@@ -117,37 +123,18 @@ export default function AnalyticsClient({ analyses }) {
 
   return (
     <div className="max-w-7xl mx-auto space-y-12">
-      {/* Header Info */}
-      <div className="bg-[#1C1008] dark:bg-[#211307] text-white rounded-3xl p-8 shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 p-8 opacity-10">
-          <IconChartBar className="w-32 h-32" />
-        </div>
-        <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-4">
-             <div className="w-10 h-10 rounded-xl bg-[#ff6b00] flex items-center justify-center">
-                <IconChartBar className="w-6 h-6 text-white" />
-             </div>
-             <h2 className="text-2xl font-serif font-black">Performance & Métricas</h2>
-          </div>
-          <p className="text-white/70 text-sm max-w-2xl leading-relaxed">
-            Visualize o comportamento dos diferentes modelos de IA. Clique em cada provedor para ver o detalhamento 
-            por modelo específico e comparar a concisão de cada versão.
-          </p>
-        </div>
-      </div>
-
       {/* Tabs Navigation */}
       <div className="flex justify-center">
-        <div className="inline-flex bg-white dark:bg-[#211307] p-1.5 rounded-2xl border border-stone-200 dark:border-white/8 shadow-sm">
+        <div className="inline-flex bg-cream dark:bg-paper-dark p-1.5 rounded-2xl border border-stone-200 dark:border-white/8 shadow-sm">
           <button 
             onClick={() => setActiveTab('palavras')}
-            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'palavras' ? 'bg-[#ff6b00] text-white shadow-md' : 'text-stone-500 hover:text-stone-800 dark:text-[#9a8070] dark:hover:text-[#f0e4d4]'}`}
+            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'palavras' ? 'bg-accent text-white shadow-md' : 'text-stone-500 hover:text-stone-800 dark:text-[#9a8070] dark:hover:text-parchment'}`}
           >
             <IconFileText className="w-4 h-4" /> Comparativo de Palavras
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('bundles')}
-            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'bundles' ? 'bg-[#ff6b00] text-white shadow-md' : 'text-stone-500 hover:text-stone-800 dark:text-[#9a8070] dark:hover:text-[#f0e4d4]'}`}
+            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'bundles' ? 'bg-accent text-white shadow-md' : 'text-stone-500 hover:text-stone-800 dark:text-[#9a8070] dark:hover:text-parchment'}`}
           >
             <IconBook2 className="w-4 h-4" /> Lexical Bundles
           </button>
@@ -158,10 +145,10 @@ export default function AnalyticsClient({ analyses }) {
       {activeTab === 'palavras' && (
         <div className="space-y-8">
           {/* Média de Palavras Original vs AI por Disciplina */}
-          <div className="bg-white dark:bg-[#211307] rounded-3xl border border-stone-200 dark:border-white/8 shadow-sm overflow-hidden">
+          <div className="bg-cream dark:bg-paper-dark rounded-3xl border border-stone-200 dark:border-white/8 shadow-sm overflow-hidden">
             <div className="px-8 py-6 border-b border-stone-100 dark:border-white/5 flex items-center justify-between">
-              <h3 className="font-serif font-black text-[#1C1008] dark:text-[#f0e4d4] flex items-center gap-2">
-                <IconLayoutDashboard className="w-5 h-5 text-[#ff6b00]" />
+              <h3 className="font-serif font-black text-ink dark:text-parchment flex items-center gap-2">
+                <IconLayoutDashboard className="w-5 h-5 text-accent" />
                 Visão Geral: Tamanho dos Abstracts por Disciplina
               </h3>
             </div>
@@ -174,21 +161,21 @@ export default function AnalyticsClient({ analyses }) {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {wordStats.map((stat, idx) => (
                     <div key={idx} className="bg-stone-50/50 dark:bg-white/2 border border-stone-200 dark:border-white/5 p-5 rounded-2xl flex flex-col gap-4">
-                      <h4 className="font-bold text-[#1C1008] dark:text-[#f0e4d4] text-sm truncate" title={stat.discipline}>{stat.discipline}</h4>
-                      <div className="flex flex-col gap-2 text-sm font-mono text-stone-600 dark:text-[#c4b09a]">
-                        <div className="flex items-center justify-between bg-white dark:bg-[#1e1410] px-3 py-2 rounded-xl shadow-sm border border-stone-100 dark:border-white/5">
+                      <h4 className="font-bold text-ink dark:text-parchment text-sm truncate" title={stat.discipline}>{stat.discipline}</h4>
+                      <div className="flex flex-col gap-2 text-sm text-stone-600 dark:text-[#c4b09a]">
+                        <div className="flex items-center justify-between bg-cream dark:bg-[#1e1410] px-3 py-2 rounded-xl shadow-sm border border-stone-100 dark:border-white/5">
                           <span>Originais (Média)</span>
-                          <span className="font-black text-[#ff6b00]">{stat.avgOriginal}</span>
+                          <span className="font-black text-accent">{stat.avgOriginal}</span>
                         </div>
                         {Object.entries(stat.providerAverages).map(([provider, avg]) => (
-                          <div key={provider} className="flex items-center justify-between bg-white dark:bg-[#1e1410] px-3 py-2 rounded-xl shadow-sm border border-stone-100 dark:border-white/5">
+                          <div key={provider} className="flex items-center justify-between bg-cream dark:bg-[#1e1410] px-3 py-2 rounded-xl shadow-sm border border-stone-100 dark:border-white/5">
                             <span className="capitalize">{provider === 'gemini' ? 'Google Gemini' : provider === 'claude' ? 'Anthropic Claude' : provider === 'openai' ? 'OpenAI' : provider} (Média)</span>
                             <span className="font-black text-blue-600 dark:text-blue-400">{avg}</span>
                           </div>
                         ))}
-                        <div className="flex items-center justify-between bg-white dark:bg-[#1e1410] px-3 py-2 rounded-xl shadow-sm border border-stone-100 dark:border-white/5 opacity-50">
-                          <span>Média da Área</span>
-                          <span className="font-black">Em breve</span>
+                        <div className="flex items-center justify-between bg-cream dark:bg-[#1e1410] px-3 py-2 rounded-xl shadow-sm border border-stone-100 dark:border-white/5" title="Média de palavras de todos os abstracts (original + IAs) desta disciplina">
+                          <span>Média Geral</span>
+                          <span className="font-black text-ink dark:text-parchment">{stat.avgOverall}</span>
                         </div>
                       </div>
                     </div>
@@ -199,13 +186,13 @@ export default function AnalyticsClient({ analyses }) {
           </div>
 
           {/* Main Chart Card (Existente) */}
-      <div className="bg-white dark:bg-[#211307] rounded-3xl border border-stone-200 dark:border-white/8 shadow-sm overflow-hidden">
+      <div className="bg-cream dark:bg-paper-dark rounded-3xl border border-stone-200 dark:border-white/8 shadow-sm overflow-hidden">
         <div className="px-8 py-6 border-b border-stone-100 dark:border-white/5 flex items-center justify-between">
-          <h3 className="font-serif font-black text-[#1C1008] dark:text-[#f0e4d4] flex items-center gap-2">
-            <IconFileText className="w-5 h-5 text-[#ff6b00]" />
+          <h3 className="font-serif font-black text-ink dark:text-parchment flex items-center gap-2">
+            <IconFileText className="w-5 h-5 text-accent" />
             Média de Palavras por Abstract
           </h3>
-          <span className="text-[10px] font-black uppercase tracking-widest text-[#1C1008]/40 dark:text-[#c4b09a]/40 bg-stone-100 dark:bg-white/5 px-3 py-1 rounded-full">
+          <span className="text-[10px] font-black uppercase tracking-widest text-ink/40 dark:text-[#c4b09a]/40 bg-stone-100 dark:bg-white/5 px-3 py-1 rounded-full">
             Total de {analyses.length} análises
           </span>
         </div>
@@ -226,23 +213,23 @@ export default function AnalyticsClient({ analyses }) {
                       <div className="flex justify-between items-end mb-3">
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-black text-[#1C1008] dark:text-[#f0e4d4] uppercase tracking-wider">
+                            <span className="text-sm font-black text-ink dark:text-parchment uppercase tracking-wider">
                               {item.label}
                             </span>
-                            <IconChevronDown className="w-3.5 h-3.5 text-[#ff6b00] transition-transform group-open:rotate-180" />
+                            <IconChevronDown className="w-3.5 h-3.5 text-accent transition-transform group-open:rotate-180" />
                           </div>
-                          <span className="text-[10px] text-stone-400 dark:text-[#6a5040] font-bold">
+                          <span className="text-[10px] text-stone-400 dark:text-[#8a7058] font-bold">
                             Média Geral: {item.totalCount} resumos
                           </span>
                         </div>
-                        <span className="text-lg font-serif font-black text-[#ff6b00]">
-                          {item.average} <span className="text-xs uppercase font-sans text-stone-400 dark:text-[#6a5040]">palavras</span>
+                        <span className="text-lg font-serif font-black text-accent">
+                          {item.average} <span className="text-xs uppercase font-sans text-stone-400 dark:text-[#8a7058]">palavras</span>
                         </span>
                       </div>
                       
                       <div className="h-2.5 bg-stone-100 dark:bg-white/5 rounded-full overflow-hidden">
                         <div 
-                          className="h-full bg-gradient-to-r from-[#ff6b00] to-[#ff9100] rounded-full transition-all duration-1000 ease-out"
+                          className="h-full bg-gradient-to-r from-accent to-accent-2 rounded-full transition-all duration-1000 ease-out"
                           style={{ width: `${percentage}%` }}
                         />
                       </div>
@@ -250,23 +237,23 @@ export default function AnalyticsClient({ analyses }) {
 
                     {/* Breakdown by Model */}
                     <div className="px-4 pb-4 pt-2 bg-stone-50/50 dark:bg-white/2 space-y-4">
-                       <div className="text-[10px] font-black uppercase tracking-widest text-[#1C1008]/40 dark:text-[#c4b09a]/40 mb-2 px-1">
+                       <div className="text-[10px] font-black uppercase tracking-widest text-ink/40 dark:text-[#c4b09a]/40 mb-2 px-1">
                           Detalhamento por Modelo
                        </div>
                        {item.models.map(model => (
-                         <div key={model.id} className="flex items-center justify-between bg-white dark:bg-[#1C1008]/40 p-3 rounded-xl border border-stone-100 dark:border-white/5">
+                         <div key={model.id} className="flex items-center justify-between bg-cream dark:bg-ink/40 p-3 rounded-xl border border-stone-100 dark:border-white/5">
                             <div className="flex flex-col">
-                               <span className="text-xs font-bold text-[#1C1008] dark:text-[#f0e4d4]">{model.id}</span>
-                               <span className="text-[9px] text-stone-400 dark:text-[#6a5040] uppercase tracking-tighter">{model.count} ocorrências</span>
+                               <span className="text-xs font-bold text-ink dark:text-parchment">{model.id}</span>
+                               <span className="text-[9px] text-stone-400 dark:text-[#8a7058] uppercase tracking-tighter">{model.count} ocorrências</span>
                             </div>
                             <div className="flex items-center gap-2">
                                <div className="h-1.5 w-24 bg-stone-100 dark:bg-white/5 rounded-full overflow-hidden">
                                   <div 
-                                    className="h-full bg-[#ff6b00]/60 rounded-full"
+                                    className="h-full bg-accent/60 rounded-full"
                                     style={{ width: `${(model.average / maxAverage) * 100}%` }}
                                   />
                                </div>
-                               <span className="text-xs font-black text-[#ff6b00] min-w-[30px] text-right">{model.average}</span>
+                               <span className="text-xs font-black text-accent min-w-[30px] text-right">{model.average}</span>
                             </div>
                          </div>
                        ))}
@@ -279,12 +266,15 @@ export default function AnalyticsClient({ analyses }) {
         </div>
 
         <div className="px-8 py-5 bg-stone-50 dark:bg-[#1e1410] border-t border-stone-100 dark:border-white/5">
-           <p className="text-[10px] text-stone-400 dark:text-[#6a5040] flex items-center gap-1.5 uppercase font-bold tracking-wider">
+           <p className="text-[10px] text-stone-400 dark:text-[#8a7058] flex items-center gap-1.5 uppercase font-bold tracking-wider">
               <IconInfoCircle className="w-3.5 h-3.5" />
               Os dados são calculados em tempo real com base no seu histórico de submissões.
            </p>
         </div>
       </div>
+
+          {/* Análise por Disciplina */}
+          <DisciplineAnalysis analyses={analyses} />
       </div>
       )}
 

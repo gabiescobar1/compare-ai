@@ -2,13 +2,34 @@
 
 import React, { useState, useRef, useMemo } from 'react';
 import { useLexicalBundles } from '@/contexts/LexicalBundlesContext';
-import { IconSettings, IconCheck, IconFileSpreadsheet, IconTrash, IconChevronDown, IconChevronUp } from '@tabler/icons-react';
+import { IconSettings, IconCheck, IconFileSpreadsheet, IconTrash, IconChevronDown, IconChevronUp, IconAlertTriangle } from '@tabler/icons-react';
 import * as XLSX from 'xlsx';
 import { DISCIPLINES } from '@/constants/Disciplines';
+
+// Converte valores de célula em número, tolerando vírgula decimal (pt-BR),
+// separadores de milhar e espaços. Retorna 0 quando não há número válido.
+const toNumber = (val) => {
+  if (typeof val === 'number') return Number.isFinite(val) ? val : 0;
+  if (val === undefined || val === null) return 0;
+  let s = String(val).trim().replace(/\s/g, '');
+  if (!s) return 0;
+  if (s.includes(',') && s.includes('.')) {
+    // O último separador é o decimal (ex.: "1.234,56" pt-BR ou "1,234.56" en).
+    s = s.lastIndexOf(',') > s.lastIndexOf('.')
+      ? s.replace(/\./g, '').replace(',', '.')
+      : s.replace(/,/g, '');
+  } else if (s.includes(',')) {
+    s = s.replace(',', '.'); // "45,2" -> "45.2"
+  }
+  const n = Number(s);
+  return Number.isFinite(n) ? n : 0;
+};
 
 export default function LexicalBundlesSettings({ analyses }) {
   const { bundles, setBundles } = useLexicalBundles();
   const [saved, setSaved] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
+  const [confirmClear, setConfirmClear] = useState(false);
   const fileInputRef = useRef(null);
   const [expandedDisciplines, setExpandedDisciplines] = useState({});
 
@@ -35,7 +56,7 @@ export default function LexicalBundlesSettings({ analyses }) {
         bundles[matchingKey].forEach(bItem => {
           const bundle = typeof bItem === 'string' ? bItem : bItem.bundle;
           const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          const regex = new RegExp(`\b(${escapeRegExp(bundle)})\b`, 'gi');
+          const regex = new RegExp(`\\b(${escapeRegExp(bundle)})\\b`, 'gi');
 
           // Count only in AI-generated summaries
           if (analysis.summaries) {
@@ -65,6 +86,7 @@ export default function LexicalBundlesSettings({ analyses }) {
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setUploadError(null);
 
     const reader = new FileReader();
     reader.onload = (evt) => {
@@ -99,19 +121,19 @@ export default function LexicalBundlesSettings({ analyses }) {
           );
 
           if (isHeaderRow && Object.keys(headerMap).length === 0) {
+            // Ordem importa: "Freq (pmw)" e "DOCFreq" também contêm "freq",
+            // então classificamos pmw e docFreq ANTES da frequência genérica.
             row.forEach((header, index) => {
-              const lowerHeader = String(header).toLowerCase();
-              if (lowerHeader.includes('bundle') || lowerHeader.includes('palavra')) {
+              const h = String(header).toLowerCase().trim();
+              if (!h) return;
+              if (headerMap.bundle === undefined && (h.includes('bundle') || h.includes('palavra') || h.includes('express'))) {
                 headerMap.bundle = index;
-              }
-              if (lowerHeader.includes('frequencia') || lowerHeader.includes('freq')) {
-                headerMap.frequencia = index;
-              }
-              if (lowerHeader.includes('pmw')) {
+              } else if (headerMap.pmw === undefined && (h.includes('pmw') || h.includes('milh') || h.includes('million') || h.includes('normaliz'))) {
                 headerMap.pmw = index;
-              }
-              if (lowerHeader.includes('docfreq')) {
+              } else if (headerMap.docFreq === undefined && h.includes('doc')) {
                 headerMap.docFreq = index;
+              } else if (headerMap.frequencia === undefined && (h.includes('frequencia') || h.includes('frequência') || h.includes('freq'))) {
+                headerMap.frequencia = index;
               }
             });
             continue;
@@ -120,9 +142,9 @@ export default function LexicalBundlesSettings({ analyses }) {
           if (Object.keys(headerMap).length > 0) {
             const bundleData = {
               bundle: String(row[headerMap.bundle] || '').trim(),
-              frequencia: Number(row[headerMap.frequencia] || 0),
-              pmw: Number(row[headerMap.pmw] || 0),
-              docFreq: Number(row[headerMap.docFreq] || 0),
+              frequencia: toNumber(row[headerMap.frequencia]),
+              pmw: toNumber(row[headerMap.pmw]),
+              docFreq: toNumber(row[headerMap.docFreq]),
             };
 
             if (bundleData.bundle) {
@@ -150,7 +172,7 @@ export default function LexicalBundlesSettings({ analyses }) {
 
       } catch (err) {
         console.error("Erro ao ler arquivo excel", err);
-        alert("Erro ao ler o arquivo Excel. Verifique se o formato está correto.");
+        setUploadError("Erro ao ler o arquivo Excel. Verifique se o formato está correto.");
       }
       
       if (fileInputRef.current) {
@@ -161,9 +183,8 @@ export default function LexicalBundlesSettings({ analyses }) {
   };
 
   const clearBundles = () => {
-    if (confirm("Tem certeza que deseja limpar todos os Lexical Bundles?")) {
-      setBundles({});
-    }
+    setBundles({});
+    setConfirmClear(false);
   };
 
   const disciplines = Object.keys(bundles || {});
@@ -174,7 +195,7 @@ export default function LexicalBundlesSettings({ analyses }) {
       <table className="w-full text-left border-collapse mt-2 text-xs">
         <thead>
           <tr className="border-b border-stone-200 dark:border-white/10 text-stone-500 dark:text-[#9a8070]">
-            <th className="py-2 font-bold">Bundle</th>
+            <th className="py-2 font-bold">Lexical Bundle</th>
             <th className="py-2 font-bold text-right">Freq</th>
             <th className="py-2 font-bold text-right">PMW</th>
             <th className="py-2 font-bold text-right">DOCFreq</th>
@@ -188,7 +209,7 @@ export default function LexicalBundlesSettings({ analyses }) {
               <td className="py-2 text-right">{b.frequencia}</td>
               <td className="py-2 text-right">{b.pmw}</td>
               <td className="py-2 text-right">{b.docFreq}</td>
-              <td className="py-2 text-right font-bold text-[#ff6b00]">{bundleStats?.[disc]?.[b.bundle]?.ai || 0}</td>
+              <td className="py-2 text-right font-bold text-accent">{bundleStats?.[disc]?.[b.bundle]?.ai || 0}</td>
             </tr>
           ))}
         </tbody>
@@ -198,13 +219,13 @@ export default function LexicalBundlesSettings({ analyses }) {
 
   return (
     <div>
-      <h2 className="text-xs font-black uppercase tracking-widest text-[#1C1008]/60 dark:text-[#c4b09a]/60 mb-4 flex items-center gap-2">
+      <h2 className="text-xs font-black uppercase tracking-widest text-ink/60 dark:text-[#c4b09a]/60 mb-4 flex items-center gap-2">
         <IconSettings className="w-4 h-4" /> Lexical Bundles
       </h2>
-      <div className="bg-white/80 dark:bg-[#211307]/90 backdrop-blur-sm rounded-2xl border border-stone-200 dark:border-white/8 shadow-sm p-6 flex flex-col gap-5">
+      <div className="bg-cream/80 dark:bg-paper-dark/90 backdrop-blur-sm rounded-2xl border border-stone-200 dark:border-white/8 shadow-sm p-6 flex flex-col gap-5">
         <div>
-          <p className="text-sm font-serif font-black text-[#1C1008] dark:text-[#f0e4d4]">Importar Lexical Bundles (Excel)</p>
-          <p className="text-xs text-[#1C1008]/60 dark:text-[#9a8070] mt-1">
+          <p className="text-sm font-serif font-black text-ink dark:text-parchment">Importar Lexical Bundles (Excel)</p>
+          <p className="text-xs text-ink/60 dark:text-[#9a8070] mt-1">
             Envie um arquivo Excel com seções separadas por um título de disciplina. As colunas devem ser <strong>bundle</strong>, <strong>frequencia</strong>, <strong>pmw</strong>, e <strong>docfreq</strong>.
           </p>
         </div>
@@ -219,7 +240,7 @@ export default function LexicalBundlesSettings({ analyses }) {
           />
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="flex-1 w-full sm:w-auto flex items-center justify-center gap-2 text-sm font-bold py-3 px-6 rounded-xl bg-stone-100 hover:bg-stone-200 dark:bg-[#3a2a1e] dark:hover:bg-[#4a3a2e] text-[#1C1008] dark:text-[#f0e4d4] transition-colors border border-stone-200 dark:border-white/10"
+            className="flex-1 w-full sm:w-auto flex items-center justify-center gap-2 text-sm font-bold py-3 px-6 rounded-xl bg-stone-100 hover:bg-stone-200 dark:bg-[#3a2a1e] dark:hover:bg-[#4a3a2e] text-ink dark:text-parchment transition-colors border border-stone-200 dark:border-white/10"
           >
             <IconFileSpreadsheet className="w-5 h-5 text-green-600 dark:text-green-400" />
             Escolher arquivo Excel
@@ -232,15 +253,30 @@ export default function LexicalBundlesSettings({ analyses }) {
           )}
         </div>
 
+        {uploadError && (
+          <div className="flex items-center gap-2 text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/40 rounded-xl px-4 py-3">
+            <IconAlertTriangle className="w-4 h-4 flex-shrink-0" />
+            {uploadError}
+          </div>
+        )}
+
         {totalBundles > 0 && (
           <div className="mt-2 border-t border-stone-100 dark:border-white/5 pt-4">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-black uppercase tracking-widest text-[#1C1008]/40 dark:text-[#c4b09a]/40">
+              <span className="text-xs font-black uppercase tracking-widest text-ink/40 dark:text-[#c4b09a]/40">
                 Bundles Carregados ({totalBundles})
               </span>
-              <button onClick={clearBundles} className="text-red-500 hover:text-red-600 p-1" title="Limpar tudo">
-                <IconTrash className="w-4 h-4" />
-              </button>
+              {confirmClear ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-stone-500 dark:text-[#9a8070]">Limpar tudo?</span>
+                  <button onClick={clearBundles} className="text-xs font-black text-red-500 hover:text-red-600">Sim</button>
+                  <button onClick={() => setConfirmClear(false)} className="text-xs font-black text-stone-400 hover:text-stone-700 dark:hover:text-parchment">Não</button>
+                </div>
+              ) : (
+                <button onClick={() => setConfirmClear(true)} className="text-red-500 hover:text-red-600 p-1" title="Limpar tudo">
+                  <IconTrash className="w-4 h-4" />
+                </button>
+              )}
             </div>
             
             <div className="space-y-3">
@@ -250,32 +286,31 @@ export default function LexicalBundlesSettings({ analyses }) {
                 const hasMore = discBundles.length > 5;
                 const isExpanded = expandedDisciplines[disc];
 
+                const visibleBundles = isExpanded ? discBundles : top5;
+
                 return (
                   <div key={disc} className="bg-stone-50 dark:bg-[#1a0e08] border border-stone-100 dark:border-white/5 p-4 rounded-xl">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm font-bold text-stone-800 dark:text-[#f0e4d4] truncate pr-2">{disc}</span>
-                      <span className="text-[10px] font-black bg-[#ff6b00]/10 text-[#ff6b00] px-2 py-1 rounded-full whitespace-nowrap">
+                    <button
+                      type="button"
+                      onClick={() => hasMore && toggleDiscipline(disc)}
+                      aria-expanded={hasMore ? isExpanded : undefined}
+                      title={hasMore ? (isExpanded ? 'Recolher lista' : `Ver todos os ${discBundles.length} bundles`) : undefined}
+                      className={`group w-full flex items-center gap-2 mb-2 text-left ${hasMore ? 'cursor-pointer' : 'cursor-default'}`}
+                    >
+                      <span className="text-sm font-bold text-stone-800 dark:text-parchment truncate min-w-0">{disc}</span>
+                      <span className="text-[10px] font-black bg-accent/10 text-accent px-2 py-1 rounded-full whitespace-nowrap flex-shrink-0">
                         {discBundles.length} itens
                       </span>
-                    </div>
-                    
-                    {renderTable(top5, disc)}
+                      {hasMore && (
+                        <span className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-accent text-white shadow-sm group-hover:bg-[#e05f00] transition-colors">
+                          {isExpanded
+                            ? <IconChevronUp className="w-4 h-4" stroke={2.5} />
+                            : <IconChevronDown className="w-4 h-4" stroke={2.5} />}
+                        </span>
+                      )}
+                    </button>
 
-                    {hasMore && (
-                      <div className="mt-2">
-                        {isExpanded && renderTable(discBundles.slice(5), disc)}
-                        <button
-                          onClick={() => toggleDiscipline(disc)}
-                          className="w-full mt-2 flex items-center justify-center gap-1 py-1.5 text-xs font-bold text-[#ff6b00] hover:bg-[#ff6b00]/10 rounded-lg transition-colors"
-                        >
-                          {isExpanded ? (
-                            <>Ver menos <IconChevronUp className="w-3 h-3" /></>
-                          ) : (
-                            <>Ver mais {discBundles.length - 5} bundles <IconChevronDown className="w-3 h-3" /></>
-                          )}
-                        </button>
-                      </div>
-                    )}
+                    {renderTable(visibleBundles, disc)}
                   </div>
                 );
               })}

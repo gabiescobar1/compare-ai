@@ -18,7 +18,7 @@ export default function Home() {
       <header className="flex flex-col items-center text-center max-w-7xl mx-auto mb-4">
         <h1 className="text-5xl md:text-7xl lg:text-[5.5rem] font-serif font-black leading-none tracking-tight mb-2">
           <span 
-            className="bg-clip-text text-transparent bg-gradient-to-r from-[#1C1008] to-[#1C1008] hover:to-[#6d4c3d] dark:from-[#f0e4d4] dark:to-[#f0e4d4] dark:hover:to-[#ffb347] transition-all duration-500 cursor-default"
+            className="bg-clip-text text-transparent bg-gradient-to-r from-ink to-ink hover:to-[#6d4c3d] dark:from-parchment dark:to-parchment dark:hover:to-[#ffb347] transition-all duration-500 cursor-default"
           >
             Compare AI
           </span>

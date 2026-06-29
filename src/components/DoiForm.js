@@ -70,14 +70,14 @@ export default function DoiForm({ onResult, onProcessStart }) {
   };
 
   return (
-    <div className="bg-white dark:bg-[#211307] rounded-3xl p-8 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] dark:shadow-[0_2px_15px_-3px_rgba(0,0,0,0.3)] border border-stone-200 dark:border-white/8 transition-colors duration-300">
+    <div className="bg-cream dark:bg-paper-dark rounded-3xl p-8 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] dark:shadow-[0_2px_15px_-3px_rgba(0,0,0,0.3)] border border-stone-200 dark:border-white/8 transition-colors duration-300">
       <ModelSelector selectedModels={selectedModels} onChange={handleSelectedModelsChange} disabled={isProcessing} />
 
       <label className="block text-stone-700 dark:text-[#c4b09a] text-sm font-bold mb-3">
         Insira os identificadores (DOIs) separados por vírgula
       </label>
       <textarea
-        className="w-full bg-white dark:bg-[#211307] text-stone-800 dark:text-[#f0e4d4] border border-stone-300 dark:border-white/10 rounded-2xl p-4 focus:ring-2 focus:ring-[#ff6b00] focus:outline-none transition shadow-sm font-medium placeholder-stone-400 dark:placeholder-[#6a5040]"
+        className="w-full bg-cream dark:bg-paper-dark text-stone-800 dark:text-parchment border border-stone-300 dark:border-white/10 rounded-2xl p-4 focus:ring-2 focus:ring-accent focus:outline-none transition shadow-sm font-medium placeholder-stone-400 dark:placeholder-[#8a7058]"
         placeholder={"Ex: 10.1371/journal.pone.0210340,\n10.1371/journal.pone.0202277"}
         value={doisInput}
         onChange={(e) => setDoisInput(e.target.value)}
@@ -89,7 +89,7 @@ export default function DoiForm({ onResult, onProcessStart }) {
       </label>
       <div className="relative mb-6">
         <select 
-          className="w-full bg-white dark:bg-[#211307] border border-stone-300 dark:border-white/10 text-slate-800 dark:text-[#f0e4d4] text-sm font-bold rounded-xl shadow-sm px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#ff6b00] appearance-none disabled:opacity-50 transition-colors truncate"
+          className="w-full bg-cream dark:bg-paper-dark border border-stone-300 dark:border-white/10 text-stone-800 dark:text-parchment text-sm font-bold rounded-xl shadow-sm px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-accent appearance-none disabled:opacity-50 transition-colors truncate"
           value={selectedDiscipline}
           onChange={(e) => setSelectedDiscipline(e.target.value)}
           disabled={isProcessing}
@@ -99,7 +99,7 @@ export default function DoiForm({ onResult, onProcessStart }) {
           ))}
         </select>
         <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-50">
-           <svg className="w-5 h-5 text-slate-600 dark:text-[#c4b09a]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+           <svg className="w-5 h-5 text-stone-600 dark:text-[#c4b09a]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
         </div>
       </div>
       
@@ -112,7 +112,7 @@ export default function DoiForm({ onResult, onProcessStart }) {
       <div className="mt-8 flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="text-sm font-medium text-stone-600 dark:text-[#9a8070]">
           {isProcessing ? (
-             <span className="flex items-center gap-2 text-[#1C1008] dark:text-[#c4b09a] font-bold">
+             <span className="flex items-center gap-2 text-ink dark:text-[#c4b09a] font-bold">
                <IconLoader2 className="animate-spin w-4 h-4"/>
                Processando: {currentDoiIndex} de {totalDois}
                {countdown > 0 && <span className="text-stone-500 dark:text-[#7a6050] font-normal ml-2">| Aguardando {countdown}s timeout</span>}
@@ -122,7 +122,7 @@ export default function DoiForm({ onResult, onProcessStart }) {
         <button 
           onClick={handleProcess}
           disabled={isProcessing}
-          className="w-full md:w-auto flex items-center justify-center gap-2 bg-[#ff6b00] hover:bg-gradient-to-br hover:from-[#ff6b00] hover:to-[#ff9100] text-white font-serif font-bold py-3 px-8 rounded-2xl shadow-sm transition-all hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full md:w-auto flex items-center justify-center gap-2 bg-accent hover:bg-gradient-to-br hover:from-accent hover:to-accent-2 text-white font-serif font-bold py-3 px-8 rounded-2xl shadow-sm transition-all hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isProcessing ? <IconLoader2 className="animate-spin w-5 h-5"/> : <IconSend className="w-5 h-5"/> }
           {isProcessing ? "Analisando..." : "Proceder com Análise"}

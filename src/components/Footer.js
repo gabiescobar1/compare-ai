@@ -5,7 +5,7 @@ export default function Footer() {
     <footer
       className="w-full bg-[#f9dcc4] dark:bg-[#46341e] border-t border-[#e5c9b0] dark:border-white/8 mt-auto py-5 px-6 transition-colors duration-300"
     >
-      <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-sm font-bold text-[#1C1008] dark:text-[#d4c4b0]">
+      <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-sm font-bold text-ink dark:text-[#d4c4b0]">
         <span className="flex items-center gap-1.5">
           <IconCode className="w-4 h-4 flex-shrink-0" />
           Desenvolvido por Gabriela C. Escobar

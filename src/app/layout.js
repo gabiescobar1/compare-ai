@@ -17,7 +17,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="pt-BR" className={`${inter.variable} ${montserrat.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col text-slate-900 font-sans">
+      <body className="min-h-full flex flex-col text-stone-900 font-sans">
         <ThemeProvider>
           <LexicalBundlesProvider>
             <Navigation />
