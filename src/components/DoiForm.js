@@ -47,8 +47,17 @@ export default function DoiForm({ onResult, onProcessStart }) {
 
     for (let i = 0; i < dois.length; i++) {
         setCurrentDoiIndex(i + 1);
-        const res = await processSingleDoi(dois[i], selectedModels, selectedDiscipline);
-        if (res.success) { onResult(res); } else { onResult({ id: Date.now() + i, doi: dois[i], error: res.error }); }
+        try {
+            const res = await processSingleDoi(dois[i], selectedModels, selectedDiscipline);
+            onResult(res);
+        } catch (e) {
+            console.error("Falha ao processar DOI:", dois[i], e);
+            onResult({ 
+                id: Date.now() + i, 
+                doi: dois[i], 
+                error: "Não foi possível salvar a análise no histórico. Verifique o console do servidor para mais detalhes." 
+            });
+        }
 
         if (i < dois.length - 1) {
             let timeLeft = 60;

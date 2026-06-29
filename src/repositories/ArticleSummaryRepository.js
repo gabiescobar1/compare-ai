@@ -25,7 +25,7 @@ export class ArticleSummaryRepository {
       .single();
 
     if (analysisError) {
-      throw new Error(`Erro ao salvar análise no Supabase: ${analysisError.message}`);
+      throw new Error(`Erro ao salvar análise no Supabase: ${analysisError?.message || JSON.stringify(analysisError)}`);
     }
 
     // 2. Inserir os resumos vinculados
@@ -44,7 +44,7 @@ export class ArticleSummaryRepository {
       .insert(summaryRows);
 
     if (summariesError) {
-      throw new Error(`Erro ao salvar resumos no Supabase: ${summariesError.message}`);
+      throw new Error(`Erro ao salvar resumos no Supabase: ${summariesError?.message || JSON.stringify(summariesError)}`);
     }
 
     return analysis;

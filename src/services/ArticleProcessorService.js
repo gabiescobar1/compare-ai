@@ -41,36 +41,25 @@ export class ArticleProcessorService {
       );
 
       // Salvar no banco
-      let savedToDb = false;
-      let finalId = String(Date.now());
-
-      try {
-        const savedEntity = await this.repository.save(
-          {
-            doi: article.doi,
-            title: article.title,
-            discipline: discipline,
-            original_abstract: article.abstract,
-          },
-          summariesResults
-        );
-        if (savedEntity) {
-          savedToDb = true;
-          finalId = savedEntity.id;
-        }
-      } catch (repoError) {
-        console.error("Erro no repositório de dados:", repoError);
-      }
+      const savedEntity = await this.repository.save(
+        {
+          doi: article.doi,
+          title: article.title,
+          discipline: discipline,
+          original_abstract: article.abstract,
+        },
+        summariesResults
+      );
 
       return {
         success: true,
-        id: finalId,
+        id: savedEntity.id,
         doi: article.doi,
         title: article.title,
         discipline: discipline,
         originalAbstract: article.abstract,
         summaries: summariesResults,
-        savedToDb
+        savedToDb: true
       };
 
     } catch (error) {
