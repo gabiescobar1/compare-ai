@@ -60,7 +60,7 @@ const BundleDisciplinesPopover = ({ bundle, disciplines, top, left, onClose }) =
   );
 };
 
-const HighlightedText = ({ text, disciplineLabel }) => {
+const HighlightedText = ({ text }) => {
   const { bundles } = useLexicalBundles();
   const [mounted, setMounted] = useState(false);
   // Popover aberto: { key, bundle, disciplines, top, left } — key identifica a ocorrência clicada.
@@ -92,27 +92,27 @@ const HighlightedText = ({ text, disciplineLabel }) => {
   if (!mounted || !text || !bundles || Object.keys(bundles).length === 0) return <>{text}</>;
 
   const isArrayBundles = Array.isArray(bundles);
-  let activeBundles = [];
+
+  // Destaca bundles de TODAS as disciplinas (união, sem duplicar por texto).
+  // A lista de cada disciplina pode conter strings (legado) ou objetos { bundle, ... }.
+  const bundleStrings = [];
+  const seen = new Set();
+  const collect = (list) => {
+    (list || []).forEach((b) => {
+      const str = typeof b === 'string' ? b : b.bundle;
+      if (!str) return;
+      const key = str.toLowerCase();
+      if (!seen.has(key)) {
+        seen.add(key);
+        bundleStrings.push(str);
+      }
+    });
+  };
   if (isArrayBundles) {
-    activeBundles = bundles;
+    collect(bundles);
   } else {
-    // Busca a disciplina com o nome exato (case insensitive) ou usa 'Geral'
-    const matchingKey = Object.keys(bundles).find(
-      k => k.toLowerCase() === (disciplineLabel || '').toLowerCase()
-    );
-    if (matchingKey) {
-      activeBundles = bundles[matchingKey];
-    } else if (bundles['Geral']) {
-      activeBundles = bundles['Geral'];
-    }
+    Object.keys(bundles).forEach((disc) => collect(bundles[disc]));
   }
-
-  if (activeBundles.length === 0) return <>{text}</>;
-
-  // A lista de bundles pode conter strings (legado) ou objetos { bundle, ... }.
-  const bundleStrings = activeBundles
-    .map(b => (typeof b === 'string' ? b : b.bundle))
-    .filter(Boolean);
 
   if (bundleStrings.length === 0) return <>{text}</>;
 
@@ -176,7 +176,7 @@ const HighlightedText = ({ text, disciplineLabel }) => {
   );
 };
 
-const ModelCard = ({ summary, disciplineLabel }) => {
+const ModelCard = ({ summary }) => {
   const isError = summary?.content?.includes('ERRO');
   const wordCount = summary?.content ? summary.content.trim().split(/\s+/).filter(Boolean).length : 0;
   const style = PROVIDER_STYLES[summary?.provider] || { headerBg: 'bg-stone-50', label: summary?.provider || 'Desconhecido' };
@@ -224,7 +224,7 @@ const ModelCard = ({ summary, disciplineLabel }) => {
 
       <div className={`p-5 flex-1 relative ${isError ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400' : 'bg-cream dark:bg-paper-dark'}`}>
         <div className="prose text-[13px] prose-stone max-w-none overflow-y-auto max-h-[350px] pr-2 custom-scrollbar text-stone-700 dark:text-[#d4c4b0] text-justify leading-relaxed whitespace-pre-wrap">
-          {summary?.content ? <HighlightedText text={summary.content} disciplineLabel={disciplineLabel} /> : "Nenhum conteúdo gerado."}
+          {summary?.content ? <HighlightedText text={summary.content} /> : "Nenhum conteúdo gerado."}
         </div>
       </div>
       <div className="p-4 border-t border-stone-100 dark:border-white/5 bg-stone-50 dark:bg-paper-dark">
@@ -379,7 +379,7 @@ export default function ResultsComparison({ data, onDelete, defaultExpanded = tr
                 </div>
                 <div className="p-5 flex-1 relative">
                    <div className="prose text-[13px] prose-stone max-w-none overflow-y-auto max-h-[350px] pr-2 custom-scrollbar text-stone-700 dark:text-[#d4c4b0] text-justify leading-relaxed whitespace-pre-wrap">
-                    <HighlightedText text={data.originalAbstract} disciplineLabel={disciplineLabel} />
+                    <HighlightedText text={data.originalAbstract} />
                   </div>
                 </div>
                  <div className="p-4 border-t border-stone-100 dark:border-white/5 bg-stone-50 dark:bg-paper-dark">
@@ -411,7 +411,7 @@ export default function ResultsComparison({ data, onDelete, defaultExpanded = tr
                 <div className="flex flex-wrap justify-center gap-6">
                   {summaries.map((summary, idx) => (
                     <div key={idx} className="w-full sm:w-[calc(50%-12px)] xl:w-[calc(33.333%-16px)]">
-                      <ModelCard summary={summary} disciplineLabel={disciplineLabel} />
+                      <ModelCard summary={summary} />
                     </div>
                   ))}
                 </div>
@@ -420,7 +420,7 @@ export default function ResultsComparison({ data, onDelete, defaultExpanded = tr
                   <div className="flex gap-6" style={{ minWidth: 'max-content' }}>
                     {summaries.map((summary, idx) => (
                       <div key={idx} className="w-[320px] flex-shrink-0">
-                        <ModelCard summary={summary} disciplineLabel={disciplineLabel} />
+                        <ModelCard summary={summary} />
                       </div>
                     ))}
                   </div>
