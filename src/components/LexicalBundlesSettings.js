@@ -25,6 +25,13 @@ const toNumber = (val) => {
   return Number.isFinite(n) ? n : 0;
 };
 
+// Igual a toNumber, mas retorna null (valor em branco) quando a célula está
+// vazia — usado para não preencher valores que não vieram da planilha.
+const toNumberOrNull = (val) => {
+  if (val === undefined || val === null || String(val).trim() === '') return null;
+  return toNumber(val);
+};
+
 export default function LexicalBundlesSettings({ analyses }) {
   const { bundles, setBundles } = useLexicalBundles();
   const [saved, setSaved] = useState(false);
@@ -140,11 +147,13 @@ export default function LexicalBundlesSettings({ analyses }) {
           }
           
           if (Object.keys(headerMap).length > 0) {
+            // Só carrega o valor quando a coluna existe na planilha E a célula
+            // tem conteúdo; caso contrário fica em branco (null).
             const bundleData = {
               bundle: String(row[headerMap.bundle] || '').trim(),
-              frequencia: toNumber(row[headerMap.frequencia]),
-              pmw: toNumber(row[headerMap.pmw]),
-              docFreq: toNumber(row[headerMap.docFreq]),
+              frequencia: headerMap.frequencia !== undefined ? toNumberOrNull(row[headerMap.frequencia]) : null,
+              pmw: headerMap.pmw !== undefined ? toNumberOrNull(row[headerMap.pmw]) : null,
+              docFreq: headerMap.docFreq !== undefined ? toNumberOrNull(row[headerMap.docFreq]) : null,
             };
 
             if (bundleData.bundle) {
@@ -158,8 +167,11 @@ export default function LexicalBundlesSettings({ analyses }) {
             delete newBundles[key];
           } else {
             newBundles[key].sort((a, b) => {
-              if (b.frequencia !== a.frequencia) {
-                return b.frequencia - a.frequencia;
+              // Bundles sem frequência (null) vão para o fim da lista.
+              const fa = a.frequencia ?? -Infinity;
+              const fb = b.frequencia ?? -Infinity;
+              if (fb !== fa) {
+                return fb - fa;
               }
               return a.bundle.localeCompare(b.bundle);
             });
@@ -206,9 +218,9 @@ export default function LexicalBundlesSettings({ analyses }) {
           {items.map((b, idx) => (
             <tr key={idx} className="border-b border-stone-100 dark:border-white/5 last:border-0 text-stone-700 dark:text-[#c4b09a]">
               <td className="py-2 font-medium">{b.bundle}</td>
-              <td className="py-2 text-right">{b.frequencia}</td>
-              <td className="py-2 text-right">{b.pmw}</td>
-              <td className="py-2 text-right">{b.docFreq}</td>
+              <td className="py-2 text-right">{b.frequencia ?? ''}</td>
+              <td className="py-2 text-right">{b.pmw ?? ''}</td>
+              <td className="py-2 text-right">{b.docFreq ?? ''}</td>
               <td className="py-2 text-right font-bold text-accent">{bundleStats?.[disc]?.[b.bundle]?.ai || 0}</td>
             </tr>
           ))}
