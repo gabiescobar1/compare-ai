@@ -2,21 +2,12 @@ import OpenAI from 'openai';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import Anthropic from '@anthropic-ai/sdk';
 import { calculateCost } from '@/constants/AiModels';
+import { buildAbstractPrompt, SYSTEM_PROMPT } from '@/constants/AiPrompt';
 
 export class AIService {
   constructor() {
-    this.promptTemplate = (title, body) => `
-Generate a research article abstract for this article.
-
-Title: ${title}
-
-Body text:
-${body}
-
-Write in English. Format the text in a professional way.
-IMPORTANT: Do NOT use, reference, or reproduce any existing abstract of the article. Generate the abstract solely based on the body text provided above.
-Return ONLY the paragraphs of the abstract. Do NOT include any titles, headings, or prefixes (such as "Abstract:" or "Abstract"). Start directly with the first word of the generated text.
-`;
+    // Prompt compartilhado com o modal de transparência (ver AiPrompt.js).
+    this.promptTemplate = buildAbstractPrompt;
   }
 
   createErrorResponse(errorMsg, modelId) {
@@ -51,7 +42,7 @@ Return ONLY the paragraphs of the abstract. Do NOT include any titles, headings,
       const response = await openai.chat.completions.create({
         model: modelId,
         messages: [
-          { role: 'system', content: 'Você é um pesquisador acadêmico útil.' },
+          { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: prompt }
         ],
         ...samplingParam,
@@ -107,7 +98,7 @@ Return ONLY the paragraphs of the abstract. Do NOT include any titles, headings,
       const response = await anthropic.messages.create({
         model: modelId,
         max_tokens: 1024,
-        system: 'Você é um pesquisador acadêmico útil.',
+        system: SYSTEM_PROMPT,
         messages: [
           { role: 'user', content: prompt }
         ]

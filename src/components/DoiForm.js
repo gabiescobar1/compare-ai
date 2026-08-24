@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { processSingleDoi } from '@/app/actions';
-import { IconLoader2, IconSend, IconAlertCircle, IconPlayerStop, IconCircleCheck } from '@tabler/icons-react';
+import { IconLoader2, IconSend, IconAlertCircle, IconPlayerStop, IconCircleCheck, IconTerminal2 } from '@tabler/icons-react';
 import ModelSelector from '@/components/ModelSelector';
+import PromptModal from '@/components/PromptModal';
 import { AI_MODELS, sanitizeSelectedModels } from '@/constants/AiModels';
 import { DISCIPLINES } from '@/constants/Disciplines';
 
@@ -22,6 +23,7 @@ export default function DoiForm({ onResult, onProcessStart }) {
   const [errorText, setErrorText] = useState("");
   const [allSucceeded, setAllSucceeded] = useState(false);
   const [wasCancelled, setWasCancelled] = useState(false);
+  const [showPrompt, setShowPrompt] = useState(false);
 
   const cancelRef = useRef(false);
 
@@ -118,6 +120,17 @@ export default function DoiForm({ onResult, onProcessStart }) {
 
   return (
     <div className="bg-cream dark:bg-paper-dark rounded-3xl p-8 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] dark:shadow-[0_2px_15px_-3px_rgba(0,0,0,0.3)] border border-stone-200 dark:border-white/8 transition-colors duration-300">
+      <div className="flex justify-end mb-5">
+        <button
+          type="button"
+          onClick={() => setShowPrompt(true)}
+          className="flex items-center gap-2 text-sm font-serif font-bold py-2.5 px-5 rounded-2xl text-parchment shadow-sm bg-[#6d4c3d] bg-gradient-to-r from-[#6d4c3d] to-[#6d4c3d] hover:to-[#ffb347] hover:shadow-md transition-all duration-500"
+        >
+          <IconTerminal2 className="w-4 h-4" />
+          Ver prompt enviado às IAs
+        </button>
+      </div>
+
       <ModelSelector selectedModels={selectedModels} onChange={handleSelectedModelsChange} disabled={isProcessing} />
 
       <label className="block text-stone-700 dark:text-[#c4b09a] text-sm font-bold mb-3">
@@ -197,6 +210,8 @@ export default function DoiForm({ onResult, onProcessStart }) {
           <IconPlayerStop className="w-5 h-5 flex-shrink-0" /> Análise interrompida. Os resultados já gerados aparecem acima.
         </div>
       )}
+
+      <PromptModal open={showPrompt} onClose={() => setShowPrompt(false)} />
     </div>
   );
 }
