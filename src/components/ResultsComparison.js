@@ -1,6 +1,7 @@
 'use client';
 import React, { useState } from 'react';
-import { IconCoin, IconFileText, IconBulb, IconDownload, IconTrash, IconChevronDown, IconBook2, IconPackage, IconCopy, IconCheck, IconSquare, IconSquareCheckFilled } from '@tabler/icons-react';
+import { createPortal } from 'react-dom';
+import { IconCoin, IconFileText, IconBulb, IconDownload, IconTrash, IconChevronDown, IconBook2, IconPackage, IconCopy, IconCheck, IconSquare, IconSquareCheckFilled, IconX } from '@tabler/icons-react';
 import { PROVIDERS } from '@/constants/AiModels';
 import { DISCIPLINES } from '@/constants/Disciplines';
 import JSZip from 'jszip';
@@ -12,18 +13,87 @@ const PROVIDER_STYLES = {
   claude: { headerBg: 'bg-[#f9dcc4] dark:bg-[#3a2010]', label: 'Anthropic Claude' },
 };
 
+// Caixinha (popover) que lista as disciplinas em que um lexical bundle aparece
+// segundo a planilha. Renderizada em portal com posição fixa para não ser
+// cortada pelo container de rolagem do texto. Dispensável clicando fora ou no X.
+const BundleDisciplinesPopover = ({ bundle, disciplines, top, left, onClose }) => {
+  const width = 260;
+  const viewportW = typeof window !== 'undefined' ? window.innerWidth : 9999;
+  const clampedLeft = Math.max(12, Math.min(left, viewportW - width - 12));
+
+  return (
+    <div
+      data-bundle-popover
+      onClick={(e) => e.stopPropagation()}
+      style={{ position: 'fixed', top, left: clampedLeft, width }}
+      className="z-[100] bg-cream dark:bg-paper-dark border border-stone-200 dark:border-white/10 rounded-2xl shadow-xl p-4"
+    >
+      <div className="flex items-start justify-between gap-2 mb-3">
+        <div className="min-w-0">
+          <p className="text-[10px] font-black uppercase tracking-widest text-ink/40 dark:text-[#c4b09a]/40">Lexical bundle</p>
+          <p className="text-sm font-bold text-ink dark:text-parchment break-words">“{bundle}”</p>
+        </div>
+        <button
+          onClick={onClose}
+          title="Fechar"
+          className="flex-shrink-0 text-stone-400 hover:text-stone-700 dark:hover:text-parchment transition-colors p-0.5"
+        >
+          <IconX className="w-4 h-4" />
+        </button>
+      </div>
+      <p className="text-[10px] font-black uppercase tracking-widest text-ink/40 dark:text-[#c4b09a]/40 mb-2">
+        Aparece em {disciplines.length} disciplina{disciplines.length !== 1 ? 's' : ''}
+      </p>
+      {disciplines.length === 0 ? (
+        <p className="text-xs text-stone-400 dark:text-[#8a7058]">Não identificado na planilha.</p>
+      ) : (
+        <div className="flex flex-col gap-1.5 max-h-56 overflow-y-auto custom-scrollbar">
+          {disciplines.map((d) => (
+            <div key={d} className="flex items-center gap-2 bg-stone-50 dark:bg-white/2 border border-stone-100 dark:border-white/5 rounded-lg px-3 py-1.5">
+              <IconBook2 className="w-3.5 h-3.5 text-accent flex-shrink-0" />
+              <span className="text-xs font-medium text-stone-700 dark:text-[#c4b09a] truncate" title={d}>{d}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const HighlightedText = ({ text, disciplineLabel }) => {
   const { bundles } = useLexicalBundles();
   const [mounted, setMounted] = useState(false);
+  // Popover aberto: { key, bundle, disciplines, top, left } — key identifica a ocorrência clicada.
+  const [popover, setPopover] = useState(null);
 
   React.useEffect(() => {
     setMounted(true);
   }, []);
-  
+
+  // Fecha ao clicar fora, rolar a página ou redimensionar (posição fixa fica obsoleta).
+  React.useEffect(() => {
+    if (!popover) return;
+    const close = () => setPopover(null);
+    // Ao rolar, não fecha se a rolagem for dentro do próprio popover.
+    const closeOnScroll = (e) => {
+      if (e.target?.closest?.('[data-bundle-popover]')) return;
+      setPopover(null);
+    };
+    document.addEventListener('click', close);
+    window.addEventListener('scroll', closeOnScroll, true);
+    window.addEventListener('resize', close);
+    return () => {
+      document.removeEventListener('click', close);
+      window.removeEventListener('scroll', closeOnScroll, true);
+      window.removeEventListener('resize', close);
+    };
+  }, [popover]);
+
   if (!mounted || !text || !bundles || Object.keys(bundles).length === 0) return <>{text}</>;
-  
+
+  const isArrayBundles = Array.isArray(bundles);
   let activeBundles = [];
-  if (Array.isArray(bundles)) {
+  if (isArrayBundles) {
     activeBundles = bundles;
   } else {
     // Busca a disciplina com o nome exato (case insensitive) ou usa 'Geral'
@@ -39,25 +109,69 @@ const HighlightedText = ({ text, disciplineLabel }) => {
 
   if (activeBundles.length === 0) return <>{text}</>;
 
-  const sortedBundles = [...activeBundles].sort((a, b) => b.length - a.length);
+  // A lista de bundles pode conter strings (legado) ou objetos { bundle, ... }.
+  const bundleStrings = activeBundles
+    .map(b => (typeof b === 'string' ? b : b.bundle))
+    .filter(Boolean);
+
+  if (bundleStrings.length === 0) return <>{text}</>;
+
+  // Todas as disciplinas da planilha em que o bundle aparece (varre todas as seções).
+  const disciplinesForBundle = (bundleText) => {
+    if (isArrayBundles) return [];
+    const target = bundleText.toLowerCase();
+    return Object.keys(bundles).filter(disc =>
+      bundles[disc].some(b => (typeof b === 'string' ? b : b.bundle).toLowerCase() === target)
+    );
+  };
+
+  const sortedBundles = [...bundleStrings].sort((a, b) => b.length - a.length);
   const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const pattern = sortedBundles.map(escapeRegExp).join('|');
   const regex = new RegExp(`\\b(${pattern})\\b`, 'gi');
 
   const parts = text.split(regex);
-  
+
+  const openPopover = (e, bundleText, key) => {
+    e.stopPropagation();
+    if (popover?.key === key) { setPopover(null); return; }
+    const rect = e.currentTarget.getBoundingClientRect();
+    setPopover({
+      key,
+      bundle: bundleText,
+      disciplines: disciplinesForBundle(bundleText),
+      top: Math.max(12, Math.min(rect.bottom + 6, window.innerHeight - 320)),
+      left: rect.left,
+    });
+  };
+
   return (
     <>
       {parts.map((part, i) => {
-        if (sortedBundles.some(b => b.toLowerCase() === part.toLowerCase())) {
+        if (part && sortedBundles.some(b => b.toLowerCase() === part.toLowerCase())) {
           return (
-            <mark key={i} className="bg-yellow-200 dark:bg-yellow-500/30 text-inherit px-0.5 rounded font-medium">
+            <mark
+              key={i}
+              onClick={(e) => openPopover(e, part, i)}
+              title="Ver disciplinas em que aparece"
+              className="bg-yellow-200 dark:bg-yellow-500/30 text-inherit px-0.5 rounded font-medium cursor-pointer hover:bg-yellow-300 dark:hover:bg-yellow-500/50 transition-colors"
+            >
               {part}
             </mark>
           );
         }
         return part;
       })}
+      {popover && createPortal(
+        <BundleDisciplinesPopover
+          bundle={popover.bundle}
+          disciplines={popover.disciplines}
+          top={popover.top}
+          left={popover.left}
+          onClose={() => setPopover(null)}
+        />,
+        document.body
+      )}
     </>
   );
 };
