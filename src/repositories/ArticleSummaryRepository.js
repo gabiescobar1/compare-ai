@@ -104,4 +104,19 @@ export class ArticleSummaryRepository {
     }
     return true;
   }
+
+  async deleteMany(ids) {
+    if (!supabase || !Array.isArray(ids) || ids.length === 0) return false;
+
+    const { error } = await supabase
+      .from('analyses')
+      .delete()
+      .in('id', ids);
+
+    if (error) {
+      console.error("Erro ao deletar em lote:", error);
+      return false;
+    }
+    return true;
+  }
 }

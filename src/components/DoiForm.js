@@ -1,21 +1,30 @@
 'use client'
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { processSingleDoi } from '@/app/actions';
-import { IconLoader2, IconSend, IconAlertCircle } from '@tabler/icons-react';
+import { IconLoader2, IconSend, IconAlertCircle, IconPlayerStop, IconCircleCheck } from '@tabler/icons-react';
 import ModelSelector from '@/components/ModelSelector';
-import { AI_MODELS } from '@/constants/AiModels';
+import { AI_MODELS, sanitizeSelectedModels } from '@/constants/AiModels';
 import { DISCIPLINES } from '@/constants/Disciplines';
+
+// Quantos DOIs processar ao mesmo tempo. Cada DOI já roda seus modelos em
+// paralelo internamente; o pool acelera o lote sem disparar todos de uma vez
+// (o que estouraria os limites das APIs).
+const CONCURRENCY = 4;
 
 export default function DoiForm({ onResult, onProcessStart }) {
   const [doisInput, setDoisInput] = useState("");
   const [selectedDiscipline, setSelectedDiscipline] = useState(DISCIPLINES[0].id);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [currentDoiIndex, setCurrentDoiIndex] = useState(0);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [completedCount, setCompletedCount] = useState(0);
   const [totalDois, setTotalDois] = useState(0);
-  const [countdown, setCountdown] = useState(0);
   const [errorText, setErrorText] = useState("");
-  
+  const [allSucceeded, setAllSucceeded] = useState(false);
+  const [wasCancelled, setWasCancelled] = useState(false);
+
+  const cancelRef = useRef(false);
+
   const [selectedModels, setSelectedModels] = useState([
     { provider: 'openai', modelId: AI_MODELS.OPENAI[0].id },
   ]);
@@ -24,7 +33,12 @@ export default function DoiForm({ onResult, onProcessStart }) {
     const saved = localStorage.getItem('compare-ai-selected-models');
     if (saved) {
       try {
-        setSelectedModels(JSON.parse(saved));
+        // Sanea ids antigos que não existem mais na tabela (senão o custo zera).
+        const cleaned = sanitizeSelectedModels(JSON.parse(saved));
+        if (cleaned.length > 0) {
+          setSelectedModels(cleaned);
+          localStorage.setItem('compare-ai-selected-models', JSON.stringify(cleaned));
+        }
       } catch (e) {}
     }
   }, []);
@@ -40,33 +54,66 @@ export default function DoiForm({ onResult, onProcessStart }) {
     const dois = doisInput.split(',').map(d => d.trim()).filter(d => d.length > 0);
     if (dois.length === 0) { setErrorText("DOIs inválidos."); return; }
 
+    cancelRef.current = false;
+    setWasCancelled(false);
+    setAllSucceeded(false);
+    setIsCancelling(false);
     setIsProcessing(true);
     setTotalDois(dois.length);
-    setCurrentDoiIndex(0);
+    setCompletedCount(0);
     onProcessStart();
 
-    for (let i = 0; i < dois.length; i++) {
-        setCurrentDoiIndex(i + 1);
+    let nextIndex = 0;
+    let processed = 0;
+    let anyError = false;
+
+    // Worker do pool: pega o próximo DOI disponível até acabar (ou cancelar).
+    const worker = async () => {
+      while (true) {
+        if (cancelRef.current) return;
+        const i = nextIndex++;
+        if (i >= dois.length) return;
+
+        let res;
         try {
-            const res = await processSingleDoi(dois[i], selectedModels, selectedDiscipline);
-            onResult(res);
+          res = await processSingleDoi(dois[i], selectedModels, selectedDiscipline);
         } catch (e) {
-            console.error("Falha ao processar DOI:", dois[i], e);
-            onResult({ 
-                id: Date.now() + i, 
-                doi: dois[i], 
-                error: "Não foi possível salvar a análise no histórico. Verifique o console do servidor para mais detalhes." 
-            });
+          console.error("Falha ao processar DOI:", dois[i], e);
+          res = {
+            id: Date.now() + i,
+            doi: dois[i],
+            error: "Não foi possível processar este DOI. Verifique o console do servidor.",
+          };
         }
 
-        if (i < dois.length - 1) {
-            let timeLeft = 60;
-            setCountdown(timeLeft);
-            while (timeLeft > 0) { await new Promise(r => setTimeout(r, 1000)); timeLeft--; setCountdown(timeLeft); }
+        // Cancelou enquanto este rodava: descarta o resultado e para.
+        if (cancelRef.current) return;
+
+        onResult(res);
+        if (res?.error || res?.summaries?.some(s => s?.content?.includes('ERRO'))) {
+          anyError = true;
         }
-    }
+        processed++;
+        setCompletedCount(processed);
+      }
+    };
+
+    await Promise.all(
+      Array.from({ length: Math.min(CONCURRENCY, dois.length) }, () => worker())
+    );
+
     setIsProcessing(false);
-    setCountdown(0);
+    setIsCancelling(false);
+    if (cancelRef.current) {
+      setWasCancelled(true);
+    } else if (!anyError) {
+      setAllSucceeded(true);
+    }
+  };
+
+  const handleCancel = () => {
+    cancelRef.current = true;
+    setIsCancelling(true);
   };
 
   return (
@@ -88,7 +135,7 @@ export default function DoiForm({ onResult, onProcessStart }) {
         Selecione a Disciplina do Artigo
       </label>
       <div className="relative mb-6">
-        <select 
+        <select
           className="w-full bg-cream dark:bg-paper-dark border border-stone-300 dark:border-white/10 text-stone-800 dark:text-parchment text-sm font-bold rounded-xl shadow-sm px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-accent appearance-none disabled:opacity-50 transition-colors truncate"
           value={selectedDiscipline}
           onChange={(e) => setSelectedDiscipline(e.target.value)}
@@ -102,7 +149,7 @@ export default function DoiForm({ onResult, onProcessStart }) {
            <svg className="w-5 h-5 text-stone-600 dark:text-[#c4b09a]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
         </div>
       </div>
-      
+
       {errorText && (
         <div className="flex items-center text-red-700 dark:text-red-400 mt-4 text-sm bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 p-3 rounded">
           <IconAlertCircle className="w-5 h-5 mr-2" /> {errorText}
@@ -114,20 +161,42 @@ export default function DoiForm({ onResult, onProcessStart }) {
           {isProcessing ? (
              <span className="flex items-center gap-2 text-ink dark:text-[#c4b09a] font-bold">
                <IconLoader2 className="animate-spin w-4 h-4"/>
-               Processando: {currentDoiIndex} de {totalDois}
-               {countdown > 0 && <span className="text-stone-500 dark:text-[#7a6050] font-normal ml-2">| Aguardando {countdown}s timeout</span>}
+               Processando: {completedCount} de {totalDois}
+               {isCancelling && <span className="text-stone-500 dark:text-[#7a6050] font-normal ml-2">| finalizando os em andamento…</span>}
              </span>
           ) : ( "Aguardando submissão de dados." )}
         </div>
-        <button 
-          onClick={handleProcess}
-          disabled={isProcessing}
-          className="w-full md:w-auto flex items-center justify-center gap-2 bg-accent hover:bg-gradient-to-br hover:from-accent hover:to-accent-2 text-white font-serif font-bold py-3 px-8 rounded-2xl shadow-sm transition-all hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isProcessing ? <IconLoader2 className="animate-spin w-5 h-5"/> : <IconSend className="w-5 h-5"/> }
-          {isProcessing ? "Analisando..." : "Proceder com Análise"}
-        </button>
+
+        {isProcessing ? (
+          <button
+            onClick={handleCancel}
+            disabled={isCancelling}
+            className="w-full md:w-auto flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white font-serif font-bold py-3 px-8 rounded-2xl shadow-sm transition-all hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <IconPlayerStop className="w-5 h-5" />
+            {isCancelling ? "Cancelando…" : "Cancelar análises"}
+          </button>
+        ) : (
+          <button
+            onClick={handleProcess}
+            className="w-full md:w-auto flex items-center justify-center gap-2 bg-accent hover:bg-gradient-to-br hover:from-accent hover:to-accent-2 text-white font-serif font-bold py-3 px-8 rounded-2xl shadow-sm transition-all hover:shadow-md"
+          >
+            <IconSend className="w-5 h-5"/>
+            Proceder com Análise
+          </button>
+        )}
       </div>
+
+      {allSucceeded && (
+        <div className="mt-5 flex items-center gap-2 text-green-700 dark:text-green-400 text-sm font-bold bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/50 p-3 rounded-2xl">
+          <IconCircleCheck className="w-5 h-5 flex-shrink-0" /> Análises concluídas com sucesso.
+        </div>
+      )}
+      {wasCancelled && (
+        <div className="mt-5 flex items-center gap-2 text-amber-700 dark:text-amber-400 text-sm font-bold bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 p-3 rounded-2xl">
+          <IconPlayerStop className="w-5 h-5 flex-shrink-0" /> Análise interrompida. Os resultados já gerados aparecem acima.
+        </div>
+      )}
     </div>
   );
 }

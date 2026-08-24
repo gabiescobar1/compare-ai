@@ -1,6 +1,6 @@
 'use client';
 import React, { useState } from 'react';
-import { IconCoin, IconFileText, IconBulb, IconDownload, IconTrash, IconChevronDown, IconBook2, IconPackage, IconCopy, IconCheck } from '@tabler/icons-react';
+import { IconCoin, IconFileText, IconBulb, IconDownload, IconTrash, IconChevronDown, IconBook2, IconPackage, IconCopy, IconCheck, IconSquare, IconSquareCheckFilled } from '@tabler/icons-react';
 import { PROVIDERS } from '@/constants/AiModels';
 import { DISCIPLINES } from '@/constants/Disciplines';
 import JSZip from 'jszip';
@@ -130,7 +130,7 @@ const ModelCard = ({ summary, disciplineLabel }) => {
   );
 };
 
-export default function ResultsComparison({ data, onDelete, defaultExpanded = true, disciplineAvg = null }) {
+export default function ResultsComparison({ data, onDelete, defaultExpanded = true, disciplineAvg = null, selectable = false, selected = false, onToggleSelect }) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [copiedDoi, setCopiedDoi] = useState(false);
 
@@ -165,6 +165,18 @@ export default function ResultsComparison({ data, onDelete, defaultExpanded = tr
         className="flex items-center justify-between gap-4 px-8 py-6 cursor-pointer select-none hover:bg-stone-50/50 dark:hover:bg-white/3 transition-colors"
         onClick={() => setIsExpanded(!isExpanded)}
       >
+        {selectable && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onToggleSelect?.(data.id); }}
+            title={selected ? 'Desmarcar' : 'Selecionar'}
+            className="flex-shrink-0 transition-colors"
+          >
+            {selected
+              ? <IconSquareCheckFilled className="w-6 h-6 text-accent" />
+              : <IconSquare className="w-6 h-6 text-stone-400 dark:text-[#9a8070] hover:text-accent" />}
+          </button>
+        )}
         <div className="flex-1 min-w-0">
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-2">
             <div className="flex items-center gap-2">

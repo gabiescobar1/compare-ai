@@ -1,0 +1,16 @@
+{
+  "verifiedAt": "2026-06-29",
+  "source": "manual",
+  "prices": {
+    "gpt-5.5": { "costIn": 5.0, "costOut": 30.0 },
+    "gpt-5.4": { "costIn": 2.5, "costOut": 15.0 },
+    "gpt-5.4-mini": { "costIn": 0.75, "costOut": 4.5 },
+    "gpt-5.4-nano": { "costIn": 0.2, "costOut": 1.25 },
+    "gemini-3.5-flash": { "costIn": 1.5, "costOut": 9.0 },
+    "gemini-3.1-pro-preview": { "costIn": 2.0, "costOut": 12.0 },
+    "gemini-3.1-flash-lite": { "costIn": 0.25, "costOut": 1.5 },
+    "claude-opus-4-8": { "costIn": 5.0, "costOut": 25.0 },
+    "claude-sonnet-4-6": { "costIn": 3.0, "costOut": 15.0 },
+    "claude-haiku-4-5": { "costIn": 1.0, "costOut": 5.0 }
+  }
+}

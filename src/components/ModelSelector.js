@@ -1,20 +1,41 @@
 'use client';
 
-import React from 'react';
-import { AI_MODELS, PROVIDERS } from '@/constants/AiModels';
-import { IconPlus, IconX } from '@tabler/icons-react';
+import React, { useState } from 'react';
+import { AI_MODELS, PROVIDERS, PRICING_VERIFIED_AT } from '@/constants/AiModels';
+import { refreshModelPricing } from '@/app/actions';
+import { IconPlus, IconX, IconRefresh, IconLoader2, IconAlertCircle } from '@tabler/icons-react';
 
 /**
  * ModelSelector - Seletor dinâmico de 1–6 pares (Provider + Modelo).
  * @param {{ selectedModels: Array<{provider: string, modelId: string}>, onChange: Function, disabled: boolean }} props
  */
 export default function ModelSelector({ selectedModels, onChange, disabled }) {
+  // Preços ficam em estado para o botão "Atualizar preços" poder substituí-los ao vivo.
+  const [models, setModels] = useState(AI_MODELS);
+  const [verifiedAt, setVerifiedAt] = useState(PRICING_VERIFIED_AT);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshError, setRefreshError] = useState('');
+
   const canAdd = selectedModels.length < 6;
   const canRemove = selectedModels.length > 1;
 
+  const handleRefreshPrices = async () => {
+    setRefreshing(true);
+    setRefreshError('');
+    try {
+      const res = await refreshModelPricing();
+      if (res?.models) setModels(res.models);
+      if (res?.verifiedAt) setVerifiedAt(res.verifiedAt);
+    } catch (e) {
+      setRefreshError('Não foi possível atualizar os preços agora. Tente novamente.');
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const handleProviderChange = (index, newProvider) => {
     const providerConfig = PROVIDERS.find(p => p.id === newProvider);
-    const modelsForProvider = AI_MODELS[providerConfig.key] || [];
+    const modelsForProvider = models[providerConfig.key] || [];
     const updated = [...selectedModels];
     updated[index] = { provider: newProvider, modelId: modelsForProvider[0]?.id || '' };
     onChange(updated);
@@ -28,7 +49,7 @@ export default function ModelSelector({ selectedModels, onChange, disabled }) {
 
   const handleAdd = () => {
     if (!canAdd) return;
-    onChange([...selectedModels, { provider: 'openai', modelId: AI_MODELS.OPENAI[0].id }]);
+    onChange([...selectedModels, { provider: 'openai', modelId: models.OPENAI[0].id }]);
   };
 
   const handleRemove = (index) => {
@@ -38,7 +59,7 @@ export default function ModelSelector({ selectedModels, onChange, disabled }) {
 
   const renderPair = (selection, index) => {
     const providerConfig = PROVIDERS.find(p => p.id === selection.provider);
-    const modelsForProvider = AI_MODELS[providerConfig?.key] || [];
+    const modelsForProvider = models[providerConfig?.key] || [];
 
     return (
       <div
@@ -97,9 +118,37 @@ export default function ModelSelector({ selectedModels, onChange, disabled }) {
 
   return (
     <div className="mb-8 border-b border-stone-200 dark:border-white/8 pb-8">
-      <label className="block text-stone-700 dark:text-[#c4b09a] text-sm font-bold mb-4">
-        Modelos de IA
-      </label>
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <label className="block text-stone-700 dark:text-[#c4b09a] text-sm font-bold">
+          Modelos de IA
+        </label>
+
+        <div className="flex items-center gap-2">
+          {verifiedAt && (
+            <span className="text-[11px] text-stone-400 dark:text-[#8a7058]">
+              Preços de {verifiedAt}
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={handleRefreshPrices}
+            disabled={disabled || refreshing}
+            title="Buscar os preços mais recentes dos modelos"
+            className="flex items-center gap-1.5 text-xs font-bold rounded-xl px-3 py-1.5 border border-stone-300 dark:border-white/10 text-stone-600 dark:text-[#c4b09a] bg-cream dark:bg-paper-dark hover:border-accent hover:text-accent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {refreshing
+              ? <IconLoader2 className="w-3.5 h-3.5 animate-spin" />
+              : <IconRefresh className="w-3.5 h-3.5" />}
+            {refreshing ? 'Atualizando…' : 'Atualizar preços'}
+          </button>
+        </div>
+      </div>
+
+      {refreshError && (
+        <div className="flex items-center text-red-700 dark:text-red-400 mb-4 text-xs bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 p-2.5 rounded-xl">
+          <IconAlertCircle className="w-4 h-4 mr-2 flex-shrink-0" /> {refreshError}
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center justify-center gap-4">
         {selectedModels.map((selection, index) => renderPair(selection, index))}

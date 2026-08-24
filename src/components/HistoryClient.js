@@ -2,15 +2,17 @@
 
 import { useState, useTransition, useMemo } from 'react';
 import ResultsComparison from '@/components/ResultsComparison';
-import { IconBook, IconSearch } from '@tabler/icons-react';
+import { IconBook, IconSearch, IconChecklist, IconTrash, IconX } from '@tabler/icons-react';
 import { DISCIPLINES } from '@/constants/Disciplines';
-import { deleteHistoryRecord } from '@/app/actions';
+import { deleteHistoryRecord, deleteHistoryRecords } from '@/app/actions';
 
 export default function HistoryClient({ analyses }) {
   const [filter, setFilter] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isPending, startTransition] = useTransition();
   const [deletedIds, setDeletedIds] = useState(new Set());
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(new Set());
 
   const handleDelete = (id) => {
     if (confirm('Tem certeza que deseja excluir esta análise do histórico?')) {
@@ -19,6 +21,19 @@ export default function HistoryClient({ analyses }) {
         await deleteHistoryRecord(id);
       });
     }
+  };
+
+  const toggleSelect = (id) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const exitSelectMode = () => {
+    setSelectMode(false);
+    setSelectedIds(new Set());
   };
 
   const activeAnalyses = analyses.filter(a => !deletedIds.has(a.id));
@@ -55,6 +70,35 @@ export default function HistoryClient({ analyses }) {
     return matchesDiscipline && matchesSearch;
   });
 
+  const allVisibleSelected = filteredAnalyses.length > 0 && filteredAnalyses.every(a => selectedIds.has(a.id));
+
+  const toggleSelectAllVisible = () => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (allVisibleSelected) {
+        filteredAnalyses.forEach(a => next.delete(a.id));
+      } else {
+        filteredAnalyses.forEach(a => next.add(a.id));
+      }
+      return next;
+    });
+  };
+
+  const handleBulkDelete = () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    if (!confirm(`Excluir ${ids.length} análise(s) do histórico? Esta ação não pode ser desfeita.`)) return;
+    setDeletedIds(prev => {
+      const next = new Set(prev);
+      ids.forEach(id => next.add(id));
+      return next;
+    });
+    startTransition(async () => {
+      await deleteHistoryRecords(ids);
+    });
+    exitSelectMode();
+  };
+
   return (
     <>
       <div className="max-w-2xl mx-auto mt-8 mb-12 flex flex-col sm:flex-row gap-4 items-center justify-center">
@@ -90,6 +134,45 @@ export default function HistoryClient({ analyses }) {
         </div>
       </div>
       
+      {/* Barra de seleção em lote */}
+      {activeAnalyses.length > 0 && (
+        <div className="max-w-7xl mx-auto mb-6 flex flex-wrap items-center justify-end gap-2">
+          {!selectMode ? (
+            <button
+              onClick={() => setSelectMode(true)}
+              className="flex items-center gap-2 text-sm font-bold py-2 px-4 rounded-xl border border-stone-300 dark:border-white/10 bg-cream dark:bg-paper-dark text-stone-700 dark:text-[#c4b09a] hover:border-accent hover:text-accent transition-all"
+            >
+              <IconChecklist className="w-4 h-4" /> Selecionar
+            </button>
+          ) : (
+            <>
+              <span className="text-sm font-bold text-stone-600 dark:text-[#c4b09a] mr-1">
+                {selectedIds.size} selecionada(s)
+              </span>
+              <button
+                onClick={toggleSelectAllVisible}
+                className="text-sm font-bold py-2 px-4 rounded-xl border border-stone-300 dark:border-white/10 bg-cream dark:bg-paper-dark text-stone-700 dark:text-[#c4b09a] hover:border-accent hover:text-accent transition-all"
+              >
+                {allVisibleSelected ? 'Limpar seleção' : 'Selecionar todas'}
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                disabled={selectedIds.size === 0}
+                className="flex items-center gap-2 text-sm font-bold py-2 px-4 rounded-xl bg-red-500 hover:bg-red-600 text-white shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <IconTrash className="w-4 h-4" /> Excluir selecionadas ({selectedIds.size})
+              </button>
+              <button
+                onClick={exitSelectMode}
+                className="flex items-center gap-2 text-sm font-bold py-2 px-4 rounded-xl border border-stone-300 dark:border-white/10 bg-cream dark:bg-paper-dark text-stone-700 dark:text-[#c4b09a] hover:border-stone-400 transition-all"
+              >
+                <IconX className="w-4 h-4" /> Cancelar
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
       <main className="max-w-7xl mx-auto space-y-12">
         {filteredAnalyses.length === 0 ? (
            <div className="text-center border border-stone-200 dark:border-white/8 bg-cream dark:bg-paper-dark rounded-3xl p-12 text-stone-500 dark:text-[#9a8070] font-medium max-w-2xl mx-auto shadow-sm">
@@ -100,7 +183,16 @@ export default function HistoryClient({ analyses }) {
            </div>
         ) : (
            filteredAnalyses.map(item => (
-              <ResultsComparison key={item.id} data={item} onDelete={handleDelete} defaultExpanded={false} disciplineAvg={disciplineAverages[item.discipline] || 0} />
+              <ResultsComparison
+                key={item.id}
+                data={item}
+                onDelete={handleDelete}
+                defaultExpanded={false}
+                disciplineAvg={disciplineAverages[item.discipline] || 0}
+                selectable={selectMode}
+                selected={selectedIds.has(item.id)}
+                onToggleSelect={toggleSelect}
+              />
            ))
         )}
       </main>

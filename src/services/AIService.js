@@ -40,9 +40,13 @@ Return ONLY the paragraphs of the abstract. Do NOT include any titles, headings,
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
       const prompt = this.promptTemplate(title, body);
 
-      const tokenParam = this._usesCompletionTokens(modelId)
+      const usesCompletionTokens = this._usesCompletionTokens(modelId);
+      const tokenParam = usesCompletionTokens
         ? { max_completion_tokens: 1024 }
         : { max_tokens: 1024 };
+
+      // Modelos de raciocínio (gpt-5.x, o1, o3) só aceitam a temperatura padrão.
+      const samplingParam = usesCompletionTokens ? {} : { temperature: 0.3 };
 
       const response = await openai.chat.completions.create({
         model: modelId,
@@ -50,7 +54,7 @@ Return ONLY the paragraphs of the abstract. Do NOT include any titles, headings,
           { role: 'system', content: 'Você é um pesquisador acadêmico útil.' },
           { role: 'user', content: prompt }
         ],
-        temperature: 0.3,
+        ...samplingParam,
         ...tokenParam,
       });
 
@@ -121,12 +125,38 @@ Return ONLY the paragraphs of the abstract. Do NOT include any titles, headings,
     }
   }
 
-  async summarize(provider, modelId, title, body) {
+  async _summarizeOnce(provider, modelId, title, body) {
     switch (provider) {
       case 'openai': return this.summarizeWithOpenAI(title, body, modelId);
       case 'gemini': return this.summarizeWithGemini(title, body, modelId);
       case 'claude': return this.summarizeWithClaude(title, body, modelId);
       default: return this.createErrorResponse(`Provider desconhecido: ${provider}`, modelId);
     }
+  }
+
+  /**
+   * Insiste com o modelo quando ele erra (rate limit, instabilidade etc.),
+   * com backoff progressivo. Só desiste depois de esgotar as tentativas.
+   */
+  async summarize(provider, modelId, title, body) {
+    if (!['openai', 'gemini', 'claude'].includes(provider)) {
+      return this.createErrorResponse(`Provider desconhecido: ${provider}`, modelId);
+    }
+
+    const delaysMs = [1500, 4000, 8000, 15000]; // espera entre tentativas
+    const maxAttempts = delaysMs.length + 1;     // 5 tentativas no total
+    let result;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      result = await this._summarizeOnce(provider, modelId, title, body);
+      const failed = !result?.content || result.content.startsWith('ERRO');
+      if (!failed) return result;
+
+      if (attempt < maxAttempts - 1) {
+        console.warn(`[AIService] ${provider}/${modelId} falhou (tentativa ${attempt + 1}/${maxAttempts}). Repetindo…`);
+        await new Promise(r => setTimeout(r, delaysMs[attempt]));
+      }
+    }
+    return result; // esgotou as tentativas — devolve o último erro
   }
 }
