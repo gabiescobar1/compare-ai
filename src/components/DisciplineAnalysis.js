@@ -51,9 +51,14 @@ export default function DisciplineAnalysis({ analyses }) {
     analyses.forEach((a) => {
       const label = DISCIPLINES.find((d) => d.id === a.discipline)?.label || a.discipline || 'Desconhecida';
       if (!map[label]) {
-        map[label] = { discipline: label, summaries: [], providers: {}, analysisCount: 0 };
+        map[label] = { discipline: label, summaries: [], providers: {}, analysisCount: 0, originalWords: 0, originalCount: 0 };
       }
       map[label].analysisCount += 1;
+      const originalWords = countWords(a.originalAbstract);
+      if (originalWords > 0) {
+        map[label].originalWords += originalWords;
+        map[label].originalCount += 1;
+      }
       (a.summaries || []).forEach((s) => {
         if (!s.content || s.content.includes('ERRO')) return;
         const words = countWords(s.content);
@@ -244,6 +249,14 @@ export default function DisciplineAnalysis({ analyses }) {
 
   const presentProviders = Object.keys(data.providers);
 
+  // Média geral de palavras: abstracts gerados por IA vs. originais dos DOIs.
+  const aiTotalWords = Object.values(data.providers).reduce((s, pd) => s + pd.words, 0);
+  const aiTotalCount = Object.values(data.providers).reduce((s, pd) => s + pd.count, 0);
+  const avgAi = aiTotalCount > 0 ? Math.round(aiTotalWords / aiTotalCount) : 0;
+  const avgOriginal = data.originalCount > 0 ? Math.round(data.originalWords / data.originalCount) : 0;
+  const maxAvg = Math.max(avgAi, avgOriginal, 1);
+  const diff = avgAi - avgOriginal;
+
   return (
     <div className="bg-cream dark:bg-paper-dark rounded-3xl border border-stone-200 dark:border-white/8 shadow-sm overflow-hidden">
       {/* Header: voltar + título dentro da caixa */}
@@ -276,8 +289,68 @@ export default function DisciplineAnalysis({ analyses }) {
               Tamanho médio dos abstracts por IA
             </h4>
           </div>
-          <div className="bg-stone-50/50 dark:bg-white/2 rounded-2xl border border-stone-200 dark:border-white/5 p-6">
-            <PieChart data={pieData} unit=" palavras" />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+            <div className="bg-stone-50/50 dark:bg-white/2 rounded-2xl border border-stone-200 dark:border-white/5 p-6 flex items-center justify-center">
+              <PieChart data={pieData} unit=" palavras" />
+            </div>
+
+            {/* Média geral: IA vs. Originais dos DOIs */}
+            <div className="bg-stone-50/50 dark:bg-white/2 rounded-2xl border border-stone-200 dark:border-white/5 p-6 flex flex-col gap-5">
+              <p className="text-[10px] font-black uppercase tracking-widest text-ink/40 dark:text-[#c4b09a]/40">
+                Média geral: IA vs. Originais
+              </p>
+
+              {data.originalCount === 0 ? (
+                <p className="text-sm text-stone-400 dark:text-[#8a7058] my-auto text-center">
+                  Sem abstracts originais registrados para esta disciplina.
+                </p>
+              ) : (
+                <div className="flex flex-col gap-6 justify-center flex-1">
+                  <div>
+                    <div className="flex justify-between items-end mb-1.5">
+                      <span className="text-sm font-bold text-ink dark:text-parchment">Gerados por IA</span>
+                      <span className="text-lg font-serif font-black text-blue-600 dark:text-blue-400">
+                        {avgAi} <span className="text-xs uppercase font-sans text-stone-400 dark:text-[#8a7058]">palavras</span>
+                      </span>
+                    </div>
+                    <div className="h-2.5 bg-stone-100 dark:bg-white/5 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full transition-all duration-1000 ease-out"
+                        style={{ width: `${(avgAi / maxAvg) * 100}%` }}
+                      />
+                    </div>
+                    <span className="text-[10px] text-stone-400 dark:text-[#8a7058] font-bold">
+                      {aiTotalCount} abstract{aiTotalCount !== 1 ? 's' : ''} gerado{aiTotalCount !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between items-end mb-1.5">
+                      <span className="text-sm font-bold text-ink dark:text-parchment">Originais (DOIs)</span>
+                      <span className="text-lg font-serif font-black text-accent">
+                        {avgOriginal} <span className="text-xs uppercase font-sans text-stone-400 dark:text-[#8a7058]">palavras</span>
+                      </span>
+                    </div>
+                    <div className="h-2.5 bg-stone-100 dark:bg-white/5 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-accent to-accent-2 rounded-full transition-all duration-1000 ease-out"
+                        style={{ width: `${(avgOriginal / maxAvg) * 100}%` }}
+                      />
+                    </div>
+                    <span className="text-[10px] text-stone-400 dark:text-[#8a7058] font-bold">
+                      {data.originalCount} abstract{data.originalCount !== 1 ? 's' : ''} autêntico{data.originalCount !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+
+                  <div className="border-t border-stone-100 dark:border-white/5 pt-4 flex items-center justify-between">
+                    <span className="text-xs font-bold text-stone-500 dark:text-[#9a8070]">Diferença (IA − Originais)</span>
+                    <span className={`text-sm font-black ${diff > 0 ? 'text-blue-600 dark:text-blue-400' : diff < 0 ? 'text-accent' : 'text-stone-500 dark:text-[#9a8070]'}`}>
+                      {diff > 0 ? '+' : ''}{diff} palavras
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
