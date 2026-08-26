@@ -244,9 +244,14 @@ const ModelCard = ({ summary }) => {
   );
 };
 
-export default function ResultsComparison({ data, onDelete, defaultExpanded = true, disciplineAvg = null, selectable = false, selected = false, onToggleSelect }) {
+export default function ResultsComparison({ data, onDelete, defaultExpanded = true, disciplineAvg = null, selectable = false, selected = false, onToggleSelect, highlighted = false }) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [copiedDoi, setCopiedDoi] = useState(false);
+
+  // Quando este registro é o alvo de um link do histórico, expande automaticamente.
+  React.useEffect(() => {
+    if (highlighted) setIsExpanded(true);
+  }, [highlighted]);
 
   if (!data) return null;
 
@@ -273,7 +278,10 @@ export default function ResultsComparison({ data, onDelete, defaultExpanded = tr
   };
 
   return (
-    <div className="mt-12 bg-cream dark:bg-paper-dark rounded-3xl shadow-sm border border-stone-200 dark:border-white/8 relative group overflow-hidden transition-colors duration-300">
+    <div
+      id={`analysis-${data.id}`}
+      className={`mt-12 scroll-mt-32 bg-cream dark:bg-paper-dark rounded-3xl shadow-sm border relative group overflow-hidden transition-all duration-300 ${highlighted ? 'border-accent ring-2 ring-accent ring-offset-2 ring-offset-transparent' : 'border-stone-200 dark:border-white/8'}`}
+    >
       {/* Header colapsável — sempre visível */}
       <div
         className="flex items-center justify-between gap-4 px-8 py-6 cursor-pointer select-none hover:bg-stone-50/50 dark:hover:bg-white/3 transition-colors"

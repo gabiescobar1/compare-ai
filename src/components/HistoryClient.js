@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useMemo } from 'react';
+import { useState, useTransition, useMemo, useEffect } from 'react';
 import ResultsComparison from '@/components/ResultsComparison';
 import { IconBook, IconSearch, IconChecklist, IconTrash, IconX } from '@tabler/icons-react';
 import { DISCIPLINES } from '@/constants/Disciplines';
@@ -13,6 +13,22 @@ export default function HistoryClient({ analyses }) {
   const [deletedIds, setDeletedIds] = useState(new Set());
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
+  // Registro apontado por um link externo (?focus=<id>): rola, expande e destaca.
+  const [focusId, setFocusId] = useState(null);
+
+  useEffect(() => {
+    const f = new URLSearchParams(window.location.search).get('focus');
+    if (!f) return;
+    // Limpa a URL para não re-focar ao recarregar.
+    window.history.replaceState(null, '', window.location.pathname);
+    const scrollT = setTimeout(() => {
+      setFocusId(f);
+      document.getElementById(`analysis-${f}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+    // Remove o destaque depois de alguns segundos (o registro segue expandido).
+    const clearT = setTimeout(() => setFocusId(null), 3300);
+    return () => { clearTimeout(scrollT); clearTimeout(clearT); };
+  }, []);
 
   const handleDelete = (id) => {
     if (confirm('Tem certeza que deseja excluir esta análise do histórico?')) {
@@ -192,6 +208,7 @@ export default function HistoryClient({ analyses }) {
                 selectable={selectMode}
                 selected={selectedIds.has(item.id)}
                 onToggleSelect={toggleSelect}
+                highlighted={String(item.id) === String(focusId)}
               />
            ))
         )}

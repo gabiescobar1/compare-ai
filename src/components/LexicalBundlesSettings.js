@@ -2,8 +2,9 @@
 
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import Link from 'next/link';
 import { useLexicalBundles } from '@/contexts/LexicalBundlesContext';
-import { IconSettings, IconCheck, IconFileSpreadsheet, IconTrash, IconChevronDown, IconChevronUp, IconAlertTriangle, IconX, IconBook2, IconRobot } from '@tabler/icons-react';
+import { IconSettings, IconCheck, IconFileSpreadsheet, IconTrash, IconChevronDown, IconChevronUp, IconAlertTriangle, IconX, IconBook2, IconRobot, IconChevronRight } from '@tabler/icons-react';
 import * as XLSX from 'xlsx';
 import { DISCIPLINES } from '@/constants/Disciplines';
 
@@ -79,15 +80,24 @@ const OccurrencesCell = ({ count, sources }) => {
           </div>
           <div className="flex flex-col gap-2 max-h-60 overflow-y-auto custom-scrollbar">
             {sources.map((s, i) => (
-              <div key={i} className="bg-stone-50 dark:bg-white/2 border border-stone-100 dark:border-white/5 rounded-lg px-3 py-2 flex flex-col gap-1">
+              <Link
+                key={i}
+                href={`/resultados?focus=${s.id}`}
+                onClick={() => setOpen(false)}
+                title="Abrir este texto no histórico"
+                className="group bg-stone-50 dark:bg-white/2 border border-stone-100 dark:border-white/5 rounded-lg px-3 py-2 flex flex-col gap-1 hover:border-accent/40 hover:bg-accent/5 transition-colors"
+              >
                 <div className="flex items-center justify-between gap-2">
                   <span className="flex items-center gap-1.5 text-xs font-bold text-stone-700 dark:text-[#c4b09a] min-w-0">
                     <IconRobot className="w-3.5 h-3.5 text-accent flex-shrink-0" />
                     <span className="truncate">{providerLabel(s.provider)}</span>
                   </span>
-                  {s.count > 1 && (
-                    <span className="flex-shrink-0 text-[10px] font-black text-accent bg-accent/10 px-1.5 py-0.5 rounded-full">{s.count}×</span>
-                  )}
+                  <span className="flex items-center gap-1 flex-shrink-0">
+                    {s.count > 1 && (
+                      <span className="text-[10px] font-black text-accent bg-accent/10 px-1.5 py-0.5 rounded-full">{s.count}×</span>
+                    )}
+                    <IconChevronRight className="w-3.5 h-3.5 text-stone-300 dark:text-[#8a7058] group-hover:text-accent group-hover:translate-x-0.5 transition-all" />
+                  </span>
                 </div>
                 {s.title && (
                   <p className="text-xs font-medium text-ink dark:text-parchment leading-snug line-clamp-2" title={s.title}>{s.title}</p>
@@ -98,7 +108,7 @@ const OccurrencesCell = ({ count, sources }) => {
                   <span>·</span>
                   <span className="truncate" title={s.doi}>{s.doi}</span>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>,
@@ -155,6 +165,7 @@ export default function LexicalBundlesSettings({ analyses }) {
       (analysis.summaries || []).forEach(summary => {
         if (summary.content && !summary.content.includes('ERRO')) {
           aiTexts.push({
+            id: analysis.id,
             doi: analysis.doi,
             title: analysis.title,
             discipline: discLabel,
@@ -186,7 +197,7 @@ export default function LexicalBundlesSettings({ analyses }) {
         const matches = t.content.match(regex);
         if (matches && matches.length > 0) {
           ai += matches.length;
-          sources.push({ doi: t.doi, title: t.title, discipline: t.discipline, provider: t.provider, model_id: t.model_id, count: matches.length });
+          sources.push({ id: t.id, doi: t.doi, title: t.title, discipline: t.discipline, provider: t.provider, model_id: t.model_id, count: matches.length });
         }
       });
       byBundle[lowerKey] = { ai, sources };
