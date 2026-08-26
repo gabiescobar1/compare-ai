@@ -53,19 +53,28 @@ export class ArticleSummaryRepository {
   async getAll() {
     if (!supabase) return [];
 
-    // Buscar análises com seus resumos via join
-    const { data: analyses, error } = await supabase
-      .from('analyses')
-      .select(`
-        *,
-        summaries (*)
-      `)
-      .order('created_at', { ascending: false })
-      .limit(50);
+    // Pagina para trazer TODAS as análises. Sem isso, um limite fixo faz o
+    // Analytics contar abstracts a menos nas disciplinas fora das mais recentes.
+    // (O PostgREST limita ~1000 linhas por requisição, então iteramos por faixas.)
+    const PAGE_SIZE = 1000;
+    const analyses = [];
+    for (let from = 0; ; from += PAGE_SIZE) {
+      const { data, error } = await supabase
+        .from('analyses')
+        .select(`
+          *,
+          summaries (*)
+        `)
+        .order('created_at', { ascending: false })
+        .range(from, from + PAGE_SIZE - 1);
 
-    if (error) {
-      console.error(error);
-      return [];
+      if (error) {
+        console.error(error);
+        break;
+      }
+      if (!data || data.length === 0) break;
+      analyses.push(...data);
+      if (data.length < PAGE_SIZE) break;
     }
 
     // Mapear para estrutura esperada pela UI
