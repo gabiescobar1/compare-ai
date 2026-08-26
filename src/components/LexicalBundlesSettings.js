@@ -4,7 +4,6 @@ import React, { useState, useRef, useMemo } from 'react';
 import { useLexicalBundles } from '@/contexts/LexicalBundlesContext';
 import { IconSettings, IconCheck, IconFileSpreadsheet, IconTrash, IconChevronDown, IconChevronUp, IconAlertTriangle } from '@tabler/icons-react';
 import * as XLSX from 'xlsx';
-import { DISCIPLINES } from '@/constants/Disciplines';
 
 // Converte valores de célula em número, tolerando vírgula decimal (pt-BR),
 // separadores de milhar e espaços. Retorna 0 quando não há número válido.
@@ -40,44 +39,62 @@ export default function LexicalBundlesSettings({ analyses }) {
   const fileInputRef = useRef(null);
   const [expandedDisciplines, setExpandedDisciplines] = useState({});
 
+  // Conta ocorrências de cada bundle em TODOS os textos gerados por IA do
+  // histórico (independente da disciplina do texto), como o destaque amarelo faz.
+  // Guarda também as fontes (DOI + IA + modelo) de cada ocorrência.
   const bundleStats = useMemo(() => {
     if (!bundles || Object.keys(bundles).length === 0 || !analyses) return null;
 
+    // 1. Todos os textos gerados por IA (sem erros), uma vez só.
+    const aiTexts = [];
+    analyses.forEach(analysis => {
+      (analysis.summaries || []).forEach(summary => {
+        if (summary.content && !summary.content.includes('ERRO')) {
+          aiTexts.push({
+            doi: analysis.doi,
+            provider: summary.provider,
+            model_id: summary.model_id,
+            content: summary.content,
+          });
+        }
+      });
+    });
+
+    // 2. Bundles únicos (a mesma expressão em disciplinas diferentes conta igual).
+    const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const uniqueBundles = new Map(); // chave minúscula -> string original
+    Object.keys(bundles).forEach(disc => {
+      bundles[disc].forEach(b => {
+        const str = typeof b === 'string' ? b : b.bundle;
+        if (str && !uniqueBundles.has(str.toLowerCase())) uniqueBundles.set(str.toLowerCase(), str);
+      });
+    });
+
+    // 3. Conta ocorrências (e fontes) de cada bundle em todos os textos.
+    const byBundle = {}; // chave minúscula -> { ai, sources: [{doi, provider, model_id, count}] }
+    uniqueBundles.forEach((str, lowerKey) => {
+      const regex = new RegExp(`\\b(${escapeRegExp(str)})\\b`, 'gi');
+      let ai = 0;
+      const sources = [];
+      aiTexts.forEach(t => {
+        const matches = t.content.match(regex);
+        if (matches && matches.length > 0) {
+          ai += matches.length;
+          sources.push({ doi: t.doi, provider: t.provider, model_id: t.model_id, count: matches.length });
+        }
+      });
+      byBundle[lowerKey] = { ai, sources };
+    });
+
+    // 4. Redistribui para a estrutura por disciplina esperada pela tabela.
     const stats = {};
     Object.keys(bundles).forEach(disc => {
       stats[disc] = {};
       bundles[disc].forEach(b => {
-        const bundleStr = typeof b === 'string' ? b : b.bundle;
-        stats[disc][bundleStr] = { original: 0, ai: 0 };
+        const str = typeof b === 'string' ? b : b.bundle;
+        if (!str) return;
+        stats[disc][str] = byBundle[str.toLowerCase()] || { ai: 0, sources: [] };
       });
-    });
-
-    analyses.forEach(analysis => {
-      const discLabel = DISCIPLINES.find(d => d.id === analysis.discipline)?.label || analysis.discipline;
-      
-      const matchingKey = Object.keys(bundles).find(
-        k => k.toLowerCase() === (discLabel || '').toLowerCase()
-      );
-
-      if (matchingKey && stats[matchingKey]) {
-        bundles[matchingKey].forEach(bItem => {
-          const bundle = typeof bItem === 'string' ? bItem : bItem.bundle;
-          const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          const regex = new RegExp(`\\b(${escapeRegExp(bundle)})\\b`, 'gi');
-
-          // Count only in AI-generated summaries
-          if (analysis.summaries) {
-            analysis.summaries.forEach(summary => {
-              if (summary.content && !summary.content.includes('ERRO')) {
-                const matches = summary.content.match(regex);
-                if (matches) {
-                  stats[matchingKey][bundle].ai += matches.length;
-                }
-              }
-            });
-          }
-        });
-      }
     });
 
     return stats;
