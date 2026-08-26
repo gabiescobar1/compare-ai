@@ -11,9 +11,30 @@ import {
   IconFileText,
   IconRobot,
   IconLoader2,
+  IconUsersGroup,
+  IconPick,
+  IconCoin,
+  IconSchool,
+  IconGavel,
+  IconLanguage,
+  IconBuildingBank,
+  IconBrain,
 } from '@tabler/icons-react';
 import { DISCIPLINES } from '@/constants/Disciplines';
 import PieChart from './PieChart';
+
+// Ícone por disciplina (chave = label). Cai no livro (IconBook2) se desconhecida.
+const DISCIPLINE_ICONS = {
+  Anthropology: IconUsersGroup,
+  Archaeology: IconPick,
+  Economy: IconCoin,
+  Education: IconSchool,
+  Law: IconGavel,
+  Linguistics: IconLanguage,
+  'Political Science': IconBuildingBank,
+  Psychology: IconBrain,
+};
+const disciplineIcon = (label) => DISCIPLINE_ICONS[label] || IconBook2;
 
 const PROVIDER_META = {
   openai: { label: 'OpenAI', color: '#10a37f' },
@@ -167,7 +188,9 @@ export default function DisciplineAnalysis({ analyses }) {
               Selecione uma disciplina
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {byDiscipline.map((d) => (
+              {byDiscipline.map((d) => {
+                const DiscIcon = disciplineIcon(d.discipline);
+                return (
                 <button
                   key={d.discipline}
                   onClick={() => setSelected(d.discipline)}
@@ -175,7 +198,7 @@ export default function DisciplineAnalysis({ analyses }) {
                 >
                   <div className="flex items-center justify-between">
                     <span className="w-9 h-9 rounded-xl bg-accent/10 flex items-center justify-center">
-                      <IconBook2 className="w-5 h-5 text-accent" />
+                      <DiscIcon className="w-5 h-5 text-accent" />
                     </span>
                     <IconChevronRight className="w-4 h-4 text-stone-300 dark:text-[#8a7058] group-hover:text-accent group-hover:translate-x-0.5 transition-all" />
                   </div>
@@ -188,7 +211,8 @@ export default function DisciplineAnalysis({ analyses }) {
                     </p>
                   </div>
                 </button>
-              ))}
+                );
+              })}
             </div>
           </div>
 
@@ -256,6 +280,7 @@ export default function DisciplineAnalysis({ analyses }) {
   const avgOriginal = data.originalCount > 0 ? Math.round(data.originalWords / data.originalCount) : 0;
   const maxAvg = Math.max(avgAi, avgOriginal, 1);
   const diff = avgAi - avgOriginal;
+  const DetailIcon = disciplineIcon(data.discipline);
 
   return (
     <div className="bg-cream dark:bg-paper-dark rounded-3xl border border-stone-200 dark:border-white/8 shadow-sm overflow-hidden">
@@ -269,7 +294,7 @@ export default function DisciplineAnalysis({ analyses }) {
         </button>
         <div className="flex items-center gap-3">
           <span className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center flex-shrink-0">
-            <IconBook2 className="w-6 h-6 text-accent" />
+            <DetailIcon className="w-6 h-6 text-accent" />
           </span>
           <div className="min-w-0">
             <h3 className="text-xl font-serif font-black text-ink dark:text-parchment truncate">{data.discipline}</h3>
