@@ -1,9 +1,112 @@
 'use client';
 
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useLexicalBundles } from '@/contexts/LexicalBundlesContext';
-import { IconSettings, IconCheck, IconFileSpreadsheet, IconTrash, IconChevronDown, IconChevronUp, IconAlertTriangle } from '@tabler/icons-react';
+import { IconSettings, IconCheck, IconFileSpreadsheet, IconTrash, IconChevronDown, IconChevronUp, IconAlertTriangle, IconX, IconBook2, IconRobot } from '@tabler/icons-react';
 import * as XLSX from 'xlsx';
+import { DISCIPLINES } from '@/constants/Disciplines';
+
+const PROVIDER_LABELS = { openai: 'OpenAI', gemini: 'Google Gemini', claude: 'Anthropic Claude' };
+const providerLabel = (p) => PROVIDER_LABELS[p] || (p ? p.charAt(0).toUpperCase() + p.slice(1) : 'Desconhecido');
+
+// Célula da coluna "Ocorrências (IA)": número clicável que abre uma caixinha
+// (portal, posição fixa) listando onde o bundle apareceu — DOI, título,
+// disciplina e a IA responsável. Rola por dentro quando há muitos textos.
+const OccurrencesCell = ({ count, sources }) => {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+
+  useEffect(() => {
+    if (!open) return;
+    const close = () => setOpen(false);
+    const closeOnScroll = (e) => {
+      if (e.target?.closest?.('[data-occ-popover]')) return;
+      setOpen(false);
+    };
+    document.addEventListener('click', close);
+    window.addEventListener('scroll', closeOnScroll, true);
+    window.addEventListener('resize', close);
+    return () => {
+      document.removeEventListener('click', close);
+      window.removeEventListener('scroll', closeOnScroll, true);
+      window.removeEventListener('resize', close);
+    };
+  }, [open]);
+
+  if (!count) return <span className="text-stone-400 dark:text-[#8a7058]">0</span>;
+
+  const toggle = (e) => {
+    e.stopPropagation();
+    if (open) { setOpen(false); return; }
+    const r = e.currentTarget.getBoundingClientRect();
+    const width = 300;
+    const left = Math.max(12, Math.min(r.right - width, window.innerWidth - width - 12));
+    const top = Math.max(12, Math.min(r.bottom + 6, window.innerHeight - 320));
+    setPos({ top, left });
+    setOpen(true);
+  };
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={toggle}
+        title="Ver onde ocorre"
+        className="font-bold text-accent hover:underline cursor-pointer"
+      >
+        {count}
+      </button>
+      {open && createPortal(
+        <div
+          data-occ-popover
+          onClick={(e) => e.stopPropagation()}
+          style={{ position: 'fixed', top: pos.top, left: pos.left, width: 300 }}
+          className="z-[100] bg-cream dark:bg-paper-dark border border-stone-200 dark:border-white/10 rounded-2xl shadow-xl p-4 text-left"
+        >
+          <div className="flex items-start justify-between gap-2 mb-3">
+            <p className="text-[10px] font-black uppercase tracking-widest text-ink/40 dark:text-[#c4b09a]/40">
+              {count} ocorrência{count !== 1 ? 's' : ''} · {sources.length} texto{sources.length !== 1 ? 's' : ''}
+            </p>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              title="Fechar"
+              className="flex-shrink-0 text-stone-400 hover:text-stone-700 dark:hover:text-parchment transition-colors p-0.5"
+            >
+              <IconX className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="flex flex-col gap-2 max-h-60 overflow-y-auto custom-scrollbar">
+            {sources.map((s, i) => (
+              <div key={i} className="bg-stone-50 dark:bg-white/2 border border-stone-100 dark:border-white/5 rounded-lg px-3 py-2 flex flex-col gap-1">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="flex items-center gap-1.5 text-xs font-bold text-stone-700 dark:text-[#c4b09a] min-w-0">
+                    <IconRobot className="w-3.5 h-3.5 text-accent flex-shrink-0" />
+                    <span className="truncate">{providerLabel(s.provider)}</span>
+                  </span>
+                  {s.count > 1 && (
+                    <span className="flex-shrink-0 text-[10px] font-black text-accent bg-accent/10 px-1.5 py-0.5 rounded-full">{s.count}×</span>
+                  )}
+                </div>
+                {s.title && (
+                  <p className="text-xs font-medium text-ink dark:text-parchment leading-snug line-clamp-2" title={s.title}>{s.title}</p>
+                )}
+                <div className="flex items-center gap-1.5 text-[10px] text-stone-500 dark:text-[#8a7058]">
+                  <IconBook2 className="w-3 h-3 flex-shrink-0" />
+                  <span className="flex-shrink-0">{s.discipline}</span>
+                  <span>·</span>
+                  <span className="truncate" title={s.doi}>{s.doi}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>,
+        document.body
+      )}
+    </>
+  );
+};
 
 // Converte valores de célula em número, tolerando vírgula decimal (pt-BR),
 // separadores de milhar e espaços. Retorna 0 quando não há número válido.
@@ -48,10 +151,13 @@ export default function LexicalBundlesSettings({ analyses }) {
     // 1. Todos os textos gerados por IA (sem erros), uma vez só.
     const aiTexts = [];
     analyses.forEach(analysis => {
+      const discLabel = DISCIPLINES.find(d => d.id === analysis.discipline)?.label || analysis.discipline || 'Desconhecida';
       (analysis.summaries || []).forEach(summary => {
         if (summary.content && !summary.content.includes('ERRO')) {
           aiTexts.push({
             doi: analysis.doi,
+            title: analysis.title,
+            discipline: discLabel,
             provider: summary.provider,
             model_id: summary.model_id,
             content: summary.content,
@@ -80,7 +186,7 @@ export default function LexicalBundlesSettings({ analyses }) {
         const matches = t.content.match(regex);
         if (matches && matches.length > 0) {
           ai += matches.length;
-          sources.push({ doi: t.doi, provider: t.provider, model_id: t.model_id, count: matches.length });
+          sources.push({ doi: t.doi, title: t.title, discipline: t.discipline, provider: t.provider, model_id: t.model_id, count: matches.length });
         }
       });
       byBundle[lowerKey] = { ai, sources };
@@ -238,7 +344,12 @@ export default function LexicalBundlesSettings({ analyses }) {
               <td className="py-2 text-right">{b.frequencia ?? ''}</td>
               <td className="py-2 text-right">{b.pmw ?? ''}</td>
               <td className="py-2 text-right">{b.docFreq ?? ''}</td>
-              <td className="py-2 text-right font-bold text-accent">{bundleStats?.[disc]?.[b.bundle]?.ai || 0}</td>
+              <td className="py-2 text-right">
+                <OccurrencesCell
+                  count={bundleStats?.[disc]?.[b.bundle]?.ai || 0}
+                  sources={bundleStats?.[disc]?.[b.bundle]?.sources || []}
+                />
+              </td>
             </tr>
           ))}
         </tbody>
