@@ -11,6 +11,10 @@ import DisciplineAnalysis from './DisciplineAnalysis';
 export default function AnalyticsClient({ analyses }) {
   const { bundles } = useLexicalBundles();
   const [activeTab, setActiveTab] = useState('palavras');
+  // Seções de visão geral recolhidas por padrão, para a análise por disciplina
+  // (interativa) aparecer mais acima na página.
+  const [showOverview, setShowOverview] = useState(false);
+  const [showAverages, setShowAverages] = useState(false);
 
   const wordStats = useMemo(() => {
     const stats = {};
@@ -146,13 +150,22 @@ export default function AnalyticsClient({ analyses }) {
         <div className="space-y-8">
           {/* Média de Palavras Original vs AI por Disciplina */}
           <div className="bg-cream dark:bg-paper-dark rounded-3xl border border-stone-200 dark:border-white/8 shadow-sm overflow-hidden">
-            <div className="px-8 py-6 border-b border-stone-100 dark:border-white/5 flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => setShowOverview(v => !v)}
+              aria-expanded={showOverview}
+              className="w-full px-8 py-6 flex items-center justify-between gap-3 text-left hover:bg-stone-50/50 dark:hover:bg-white/3 transition-colors"
+            >
               <h3 className="font-serif font-black text-ink dark:text-parchment flex items-center gap-2">
                 <IconLayoutDashboard className="w-5 h-5 text-accent" />
                 Visão Geral: Tamanho dos Abstracts por Disciplina
               </h3>
-            </div>
-            <div className="p-8">
+              <span className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-accent/10 text-accent">
+                <IconChevronDown className={`w-5 h-5 transition-transform duration-300 ${showOverview ? 'rotate-180' : ''}`} stroke={2.5} />
+              </span>
+            </button>
+            {showOverview && (
+            <div className="p-8 border-t border-stone-100 dark:border-white/5">
               {wordStats.length === 0 ? (
                 <div className="py-10 text-center">
                   <p className="text-stone-500 dark:text-[#9a8070] font-medium">Sem dados de comparação no momento.</p>
@@ -183,21 +196,33 @@ export default function AnalyticsClient({ analyses }) {
                 </div>
               )}
             </div>
+            )}
           </div>
 
           {/* Main Chart Card (Existente) */}
       <div className="bg-cream dark:bg-paper-dark rounded-3xl border border-stone-200 dark:border-white/8 shadow-sm overflow-hidden">
-        <div className="px-8 py-6 border-b border-stone-100 dark:border-white/5 flex items-center justify-between">
+        <button
+          type="button"
+          onClick={() => setShowAverages(v => !v)}
+          aria-expanded={showAverages}
+          className="w-full px-8 py-6 flex items-center justify-between gap-3 text-left hover:bg-stone-50/50 dark:hover:bg-white/3 transition-colors"
+        >
           <h3 className="font-serif font-black text-ink dark:text-parchment flex items-center gap-2">
             <IconFileText className="w-5 h-5 text-accent" />
             Média de Palavras por Abstract
           </h3>
-          <span className="text-[10px] font-black uppercase tracking-widest text-ink/40 dark:text-[#c4b09a]/40 bg-stone-100 dark:bg-white/5 px-3 py-1 rounded-full">
-            Total de {analyses.length} análises
-          </span>
-        </div>
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <span className="text-[10px] font-black uppercase tracking-widest text-ink/40 dark:text-[#c4b09a]/40 bg-stone-100 dark:bg-white/5 px-3 py-1 rounded-full">
+              Total de {analyses.length} análises
+            </span>
+            <span className="flex items-center justify-center w-8 h-8 rounded-full bg-accent/10 text-accent">
+              <IconChevronDown className={`w-5 h-5 transition-transform duration-300 ${showAverages ? 'rotate-180' : ''}`} stroke={2.5} />
+            </span>
+          </div>
+        </button>
 
-        <div className="p-8">
+        {showAverages && (<>
+        <div className="p-8 border-t border-stone-100 dark:border-white/5">
           {stats.length === 0 ? (
             <div className="py-20 text-center">
               <IconInfoCircle className="w-12 h-12 mx-auto mb-4 text-stone-300 dark:text-white/10" />
@@ -271,6 +296,7 @@ export default function AnalyticsClient({ analyses }) {
               Os dados são calculados em tempo real com base no seu histórico de submissões.
            </p>
         </div>
+        </>)}
       </div>
 
           {/* Análise por Disciplina */}
