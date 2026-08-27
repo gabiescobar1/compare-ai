@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { processSingleDoi } from '@/app/actions';
-import { IconLoader2, IconSend, IconAlertCircle, IconPlayerStop, IconCircleCheck, IconTerminal2 } from '@tabler/icons-react';
+import { IconLoader2, IconSend, IconAlertCircle, IconPlayerStop, IconCircleCheck } from '@tabler/icons-react';
 import ModelSelector from '@/components/ModelSelector';
 import PromptModal from '@/components/PromptModal';
 import { AI_MODELS, sanitizeSelectedModels } from '@/constants/AiModels';
@@ -120,9 +120,8 @@ export default function DoiForm({ onResult, onProcessStart }) {
   };
 
   return (
-    <div className="flex items-center gap-3 sm:gap-4">
-      <div className="flex-1 min-w-0 bg-cream dark:bg-paper-dark rounded-3xl p-8 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] dark:shadow-[0_2px_15px_-3px_rgba(0,0,0,0.3)] border border-stone-200 dark:border-white/8 transition-colors duration-300">
-      <ModelSelector selectedModels={selectedModels} onChange={handleSelectedModelsChange} disabled={isProcessing} />
+    <div className="bg-cream dark:bg-paper-dark rounded-3xl p-8 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] dark:shadow-[0_2px_15px_-3px_rgba(0,0,0,0.3)] border border-stone-200 dark:border-white/8 transition-colors duration-300">
+      <ModelSelector selectedModels={selectedModels} onChange={handleSelectedModelsChange} disabled={isProcessing} onShowPrompt={() => setShowPrompt(true)} />
 
       <label className="block text-stone-700 dark:text-[#c4b09a] text-sm font-bold mb-3">
         Insira os identificadores (DOIs) separados por vírgula
@@ -203,24 +202,7 @@ export default function DoiForm({ onResult, onProcessStart }) {
         </div>
       )}
 
-        <PromptModal open={showPrompt} onClose={() => setShowPrompt(false)} />
-      </div>
-
-      {/* Botão circular à direita do card inteiro: ver o prompt enviado às IAs */}
-      <div className="group relative flex-shrink-0">
-        <button
-          type="button"
-          onClick={() => setShowPrompt(true)}
-          aria-label="Ver o prompt enviado às IAs"
-          title="Ver o prompt enviado às IAs"
-          className="w-11 h-11 flex items-center justify-center rounded-full text-parchment shadow-md bg-gradient-to-br from-[#6d4c3d] to-[#6d4c3d] hover:to-[#ffb347] hover:shadow-lg transition-all duration-500"
-        >
-          <IconTerminal2 className="w-5 h-5" />
-        </button>
-        <span className="pointer-events-none absolute right-full mr-2 top-1/2 -translate-y-1/2 w-max max-w-[180px] px-3 py-1.5 rounded-lg bg-ink text-parchment dark:bg-[#3a2a1e] text-xs font-bold shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-          Ver o prompt enviado às IAs
-        </span>
-      </div>
+      <PromptModal open={showPrompt} onClose={() => setShowPrompt(false)} />
     </div>
   );
 }

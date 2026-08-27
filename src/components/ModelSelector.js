@@ -3,13 +3,13 @@
 import React, { useState } from 'react';
 import { AI_MODELS, PROVIDERS, PRICING_VERIFIED_AT } from '@/constants/AiModels';
 import { refreshModelPricing } from '@/app/actions';
-import { IconPlus, IconX, IconRefresh, IconLoader2, IconAlertCircle } from '@tabler/icons-react';
+import { IconPlus, IconX, IconRefresh, IconLoader2, IconAlertCircle, IconTerminal2 } from '@tabler/icons-react';
 
 /**
  * ModelSelector - Seletor dinâmico de 1–6 pares (Provider + Modelo).
  * @param {{ selectedModels: Array<{provider: string, modelId: string}>, onChange: Function, disabled: boolean }} props
  */
-export default function ModelSelector({ selectedModels, onChange, disabled }) {
+export default function ModelSelector({ selectedModels, onChange, disabled, onShowPrompt }) {
   // Preços ficam em estado para o botão "Atualizar preços" poder substituí-los ao vivo.
   const [models, setModels] = useState(AI_MODELS);
   const [verifiedAt, setVerifiedAt] = useState(PRICING_VERIFIED_AT);
@@ -128,6 +128,22 @@ export default function ModelSelector({ selectedModels, onChange, disabled }) {
             <span className="text-[11px] text-stone-400 dark:text-[#8a7058]">
               Preços de {verifiedAt}
             </span>
+          )}
+          {onShowPrompt && (
+            <div className="relative group">
+              <button
+                type="button"
+                onClick={onShowPrompt}
+                aria-label="Ver o prompt enviado às IAs"
+                title="Ver o prompt enviado às IAs"
+                className="w-8 h-8 flex items-center justify-center rounded-full text-parchment shadow-sm bg-gradient-to-br from-[#6d4c3d] to-[#6d4c3d] hover:to-[#ffb347] hover:shadow-md transition-all duration-500"
+              >
+                <IconTerminal2 className="w-4 h-4" />
+              </button>
+              <span className="pointer-events-none absolute right-0 top-full mt-2 w-max max-w-[200px] px-3 py-1.5 rounded-lg bg-ink text-parchment dark:bg-[#3a2a1e] text-xs font-bold shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                Ver o prompt enviado às IAs
+              </span>
+            </div>
           )}
           <button
             type="button"
