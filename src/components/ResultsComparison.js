@@ -179,7 +179,7 @@ const HighlightedText = ({ text }) => {
 
 // Truncamento: um abstract que termina sem pontuação final foi cortado no meio
 // da frase (ex.: bateu no teto de tokens). Cap-independente e some ao regenerar.
-const endsWithSentencePunctuation = (t) => /[.!?]["'”’)\]]?\s*$/.test((t || '').trim());
+export const endsWithSentencePunctuation = (t) => /[.!?]["'”’)\]]?\s*$/.test((t || '').trim());
 
 const ModelCard = ({ summary, highlighted = false, analysisId = null, doi = null, onRegenerated }) => {
   const [regenLoading, setRegenLoading] = useState(false);
@@ -291,7 +291,7 @@ const ModelCard = ({ summary, highlighted = false, analysisId = null, doi = null
   );
 };
 
-export default function ResultsComparison({ data, onDelete, defaultExpanded = true, disciplineAvg = null, selectable = false, selected = false, onToggleSelect, highlighted = false, highlightModel = null }) {
+export default function ResultsComparison({ data, onDelete, defaultExpanded = true, disciplineAvg = null, selectable = false, selected = false, onToggleSelect, highlighted = false, highlightModel = null, onSummariesChange }) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [copiedDoi, setCopiedDoi] = useState(false);
   // Resumos em estado local para refletir regenerações de um único modelo.
@@ -313,8 +313,11 @@ export default function ResultsComparison({ data, onDelete, defaultExpanded = tr
     s => s?.content && !s.content.includes('ERRO') && !endsWithSentencePunctuation(s.content)
   );
 
-  const handleRegenerated = (idx, newSummary) =>
-    setSummaries(prev => prev.map((s, i) => (i === idx ? newSummary : s)));
+  const handleRegenerated = (idx, newSummary) => {
+    const next = summaries.map((s, i) => (i === idx ? newSummary : s));
+    setSummaries(next);
+    onSummariesChange?.(next); // deixa o histórico recontar textos/truncamentos ao vivo
+  };
   const wordCount = data.originalAbstract ? data.originalAbstract.trim().split(/\s+/).filter(Boolean).length : 0;
   const disciplineLabel = DISCIPLINES.find(d => d.id === data.discipline)?.label || data.discipline || '—';
 

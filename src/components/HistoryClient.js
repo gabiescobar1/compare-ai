@@ -1,12 +1,15 @@
 'use client';
 
 import { useState, useTransition, useMemo, useEffect } from 'react';
-import ResultsComparison from '@/components/ResultsComparison';
-import { IconBook, IconSearch, IconChecklist, IconTrash, IconX } from '@tabler/icons-react';
+import ResultsComparison, { endsWithSentencePunctuation } from '@/components/ResultsComparison';
+import { IconBook, IconSearch, IconChecklist, IconTrash, IconX, IconCircleCheck, IconAlertTriangle } from '@tabler/icons-react';
 import { DISCIPLINES } from '@/constants/Disciplines';
 import { deleteHistoryRecord, deleteHistoryRecords } from '@/app/actions';
 
 export default function HistoryClient({ analyses }) {
+  // Cópia local para o placar (textos gerados / truncamentos) atualizar ao vivo
+  // quando um abstract é regenerado, sem esperar recarregar a página.
+  const [analysesState, setAnalysesState] = useState(analyses);
   const [filter, setFilter] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isPending, startTransition] = useTransition();
@@ -58,13 +61,32 @@ export default function HistoryClient({ analyses }) {
     setSelectedIds(new Set());
   };
 
-  const activeAnalyses = analyses.filter(a => !deletedIds.has(a.id));
+  const activeAnalyses = analysesState.filter(a => !deletedIds.has(a.id));
+
+  // Atualiza os resumos de um artigo quando um modelo é regenerado (para o placar).
+  const updateItemSummaries = (id, newSummaries) =>
+    setAnalysesState(prev => prev.map(a => (a.id === id ? { ...a, summaries: newSummaries } : a)));
+
+  // Placar: textos gerados (válidos) e quantos parecem truncados, sobre todo o
+  // histórico ativo (ignora o filtro de busca/disciplina, para ser um total real).
+  const { generatedCount, truncatedCount } = useMemo(() => {
+    let generated = 0, truncated = 0;
+    analysesState.forEach(a => {
+      if (deletedIds.has(a.id)) return;
+      (a.summaries || []).forEach(s => {
+        if (!s?.content || s.content.includes('ERRO')) return;
+        generated++;
+        if (!endsWithSentencePunctuation(s.content)) truncated++;
+      });
+    });
+    return { generatedCount: generated, truncatedCount: truncated };
+  }, [analysesState, deletedIds]);
 
   // Média de palavras dos abstracts (original + IAs) por disciplina.
   const disciplineAverages = useMemo(() => {
     const acc = {};
     const countWords = (t) => (t ? t.trim().split(/\s+/).filter(Boolean).length : 0);
-    analyses.forEach(a => {
+    analysesState.forEach(a => {
       const disc = a.discipline;
       if (!acc[disc]) acc[disc] = { words: 0, count: 0 };
       const ow = countWords(a.originalAbstract);
@@ -81,7 +103,7 @@ export default function HistoryClient({ analyses }) {
       map[d] = v.count > 0 ? Math.round(v.words / v.count) : 0;
     });
     return map;
-  }, [analyses]);
+  }, [analysesState]);
 
   // Realiza o filtro localmente (ex: se filter = 'Ant', manter só item.discipline === 'Ant') e por DOI
   const filteredAnalyses = activeAnalyses.filter(a => {
@@ -123,6 +145,24 @@ export default function HistoryClient({ analyses }) {
 
   return (
     <>
+      {/* Placar: total gerado e possíveis truncamentos a resolver */}
+      <div className="max-w-7xl mx-auto mt-4 flex flex-wrap items-center justify-center gap-3">
+        <span className="flex items-center gap-1.5 text-sm font-bold text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/40 px-3 py-1.5 rounded-full">
+          <IconCircleCheck className="w-4 h-4" /> {generatedCount} textos gerados
+        </span>
+        <span
+          className={`flex items-center gap-1.5 text-sm font-bold px-3 py-1.5 rounded-full border ${truncatedCount > 0
+            ? 'text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/40'
+            : 'text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800/40'}`}
+          title="Abstracts que terminam sem pontuação final (possível corte). Regenere-os para zerar."
+        >
+          {truncatedCount > 0
+            ? <IconAlertTriangle className="w-4 h-4" />
+            : <IconCircleCheck className="w-4 h-4" />}
+          {truncatedCount} possíveis truncamentos
+        </span>
+      </div>
+
       <div className="max-w-2xl mx-auto mt-8 mb-12 flex flex-col sm:flex-row gap-4 items-center justify-center">
         {/* Campo de pesquisa por DOI */}
         <div className="relative w-full sm:w-1/2">
@@ -218,6 +258,7 @@ export default function HistoryClient({ analyses }) {
                 highlightModel={String(item.id) === String(focus?.id) && focus?.provider
                   ? { provider: focus.provider, model_id: focus.model }
                   : null}
+                onSummariesChange={(ns) => updateItemSummaries(item.id, ns)}
               />
            ))
         )}
