@@ -19,14 +19,16 @@ export default function HistoryClient({ analyses }) {
   useEffect(() => {
     const f = new URLSearchParams(window.location.search).get('focus');
     if (!f) return;
-    // Limpa a URL para não re-focar ao recarregar.
-    window.history.replaceState(null, '', window.location.pathname);
+    // Tudo dentro do timeout: assim, sob React Strict Mode (dev), a limpeza da
+    // 1ª execução cancela antes de mexer na URL, e a 2ª ainda lê o ?focus=.
     const scrollT = setTimeout(() => {
       setFocusId(f);
       document.getElementById(`analysis-${f}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
+      // Limpa a URL para não re-focar ao recarregar.
+      window.history.replaceState(null, '', window.location.pathname);
+    }, 120);
     // Remove o destaque depois de alguns segundos (o registro segue expandido).
-    const clearT = setTimeout(() => setFocusId(null), 3300);
+    const clearT = setTimeout(() => setFocusId(null), 3600);
     return () => { clearTimeout(scrollT); clearTimeout(clearT); };
   }, []);
 

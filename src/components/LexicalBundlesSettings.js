@@ -83,6 +83,7 @@ const OccurrencesCell = ({ count, sources }) => {
               <Link
                 key={i}
                 href={`/resultados?focus=${s.id}`}
+                scroll={false}
                 onClick={() => setOpen(false)}
                 title="Abrir este texto no histórico"
                 className="group bg-stone-50 dark:bg-white/2 border border-stone-100 dark:border-white/5 rounded-lg px-3 py-2 flex flex-col gap-1 hover:border-accent/40 hover:bg-accent/5 transition-colors"
