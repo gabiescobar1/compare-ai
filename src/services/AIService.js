@@ -4,9 +4,10 @@ import Anthropic from '@anthropic-ai/sdk';
 import { calculateCost } from '@/constants/AiModels';
 import { buildAbstractPrompt, SYSTEM_PROMPT } from '@/constants/AiPrompt';
 
-// Teto de tokens de saída. 1024 era baixo e cortava abstracts longos no meio
-// da frase; 2048 comporta com folga um abstract completo (~1500 palavras).
-const MAX_OUTPUT_TOKENS = 2048;
+// Teto de tokens de saída. 1024 (2^10) era um default arbitrário que cortava
+// abstracts longos no meio da frase; 1536 comporta um abstract completo e
+// folgado (~1100-1200 palavras) sem elevar demais o custo de saída do Claude.
+const MAX_OUTPUT_TOKENS = 1536;
 
 export class AIService {
   constructor() {
