@@ -1,12 +1,13 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { IconInfoCircle, IconFileText, IconChevronDown, IconBook2, IconLayoutDashboard } from '@tabler/icons-react';
+import { IconInfoCircle, IconFileText, IconChevronDown, IconBook2, IconLayoutDashboard, IconListDetails } from '@tabler/icons-react';
 import { useLexicalBundles } from '@/contexts/LexicalBundlesContext';
 import { DISCIPLINES } from '@/constants/Disciplines';
 import * as XLSX from 'xlsx';
 import LexicalBundlesSettings from './LexicalBundlesSettings';
 import DisciplineAnalysis from './DisciplineAnalysis';
+import FormatAnalysis from './FormatAnalysis';
 
 export default function AnalyticsClient({ analyses }) {
   const { bundles } = useLexicalBundles();
@@ -135,6 +136,12 @@ export default function AnalyticsClient({ analyses }) {
             className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'palavras' ? 'bg-accent text-white shadow-md' : 'text-stone-500 hover:text-stone-800 dark:text-[#9a8070] dark:hover:text-parchment'}`}
           >
             <IconFileText className="w-4 h-4" /> Comparativo de Palavras
+          </button>
+          <button
+            onClick={() => setActiveTab('formato')}
+            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'formato' ? 'bg-accent text-white shadow-md' : 'text-stone-500 hover:text-stone-800 dark:text-[#9a8070] dark:hover:text-parchment'}`}
+          >
+            <IconListDetails className="w-4 h-4" /> Formato
           </button>
           <button
             onClick={() => setActiveTab('bundles')}
@@ -302,6 +309,11 @@ export default function AnalyticsClient({ analyses }) {
           {/* Análise por Disciplina */}
           <DisciplineAnalysis analyses={analyses} />
       </div>
+      )}
+
+      {/* Tab: Formato */}
+      {activeTab === 'formato' && (
+        <FormatAnalysis analyses={analyses} />
       )}
 
       {/* Tab: Lexical Bundles */}
