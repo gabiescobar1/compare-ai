@@ -121,29 +121,35 @@ export default function DoiForm({ onResult, onProcessStart }) {
 
   return (
     <div className="bg-cream dark:bg-paper-dark rounded-3xl p-8 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] dark:shadow-[0_2px_15px_-3px_rgba(0,0,0,0.3)] border border-stone-200 dark:border-white/8 transition-colors duration-300">
-      <div className="flex justify-end mb-5">
-        <button
-          type="button"
-          onClick={() => setShowPrompt(true)}
-          className="flex items-center gap-2 text-sm font-serif font-bold py-2.5 px-5 rounded-2xl text-parchment shadow-sm bg-[#6d4c3d] bg-gradient-to-r from-[#6d4c3d] to-[#6d4c3d] hover:to-[#ffb347] hover:shadow-md transition-all duration-500"
-        >
-          <IconTerminal2 className="w-4 h-4" />
-          Ver prompt enviado às IAs
-        </button>
-      </div>
-
       <ModelSelector selectedModels={selectedModels} onChange={handleSelectedModelsChange} disabled={isProcessing} />
 
       <label className="block text-stone-700 dark:text-[#c4b09a] text-sm font-bold mb-3">
         Insira os identificadores (DOIs) separados por vírgula
       </label>
-      <textarea
-        className="w-full bg-cream dark:bg-paper-dark text-stone-800 dark:text-parchment border border-stone-300 dark:border-white/10 rounded-2xl p-4 focus:ring-2 focus:ring-accent focus:outline-none transition shadow-sm font-medium placeholder-stone-400 dark:placeholder-[#8a7058]"
-        placeholder={"Ex: 10.1371/journal.pone.0210340,\n10.1371/journal.pone.0202277"}
-        value={doisInput}
-        onChange={(e) => setDoisInput(e.target.value)}
-        disabled={isProcessing}
-      />
+      <div className="relative">
+        <textarea
+          className="w-full bg-cream dark:bg-paper-dark text-stone-800 dark:text-parchment border border-stone-300 dark:border-white/10 rounded-2xl p-4 pr-16 focus:ring-2 focus:ring-accent focus:outline-none transition shadow-sm font-medium placeholder-stone-400 dark:placeholder-[#8a7058]"
+          placeholder={"Ex: 10.1371/journal.pone.0210340,\n10.1371/journal.pone.0202277"}
+          value={doisInput}
+          onChange={(e) => setDoisInput(e.target.value)}
+          disabled={isProcessing}
+        />
+        {/* Botão circular: ver o prompt enviado às IAs (com tooltip no hover) */}
+        <div className="absolute top-3 right-3 group">
+          <button
+            type="button"
+            onClick={() => setShowPrompt(true)}
+            aria-label="Ver o prompt enviado às IAs"
+            title="Ver o prompt enviado às IAs"
+            className="w-10 h-10 flex items-center justify-center rounded-full text-parchment shadow-sm bg-gradient-to-br from-[#6d4c3d] to-[#6d4c3d] hover:to-[#ffb347] hover:shadow-md transition-all duration-500"
+          >
+            <IconTerminal2 className="w-5 h-5" />
+          </button>
+          <span className="pointer-events-none absolute right-full mr-2 top-1/2 -translate-y-1/2 w-max max-w-[200px] px-3 py-1.5 rounded-lg bg-ink text-parchment dark:bg-[#3a2a1e] text-xs font-bold shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            Ver o prompt enviado às IAs
+          </span>
+        </div>
+      </div>
 
       <label className="block text-stone-700 dark:text-[#c4b09a] text-sm font-bold mt-6 mb-3">
         Selecione a Disciplina do Artigo
