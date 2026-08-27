@@ -1,7 +1,7 @@
 'use client';
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { IconCoin, IconFileText, IconBulb, IconDownload, IconTrash, IconChevronDown, IconBook2, IconPackage, IconCopy, IconCheck, IconSquare, IconSquareCheckFilled, IconX, IconRefresh, IconLoader2 } from '@tabler/icons-react';
+import { IconCoin, IconFileText, IconBulb, IconDownload, IconTrash, IconChevronDown, IconBook2, IconPackage, IconCopy, IconCheck, IconSquare, IconSquareCheckFilled, IconX, IconRefresh, IconLoader2, IconAlertTriangle } from '@tabler/icons-react';
 import { PROVIDERS } from '@/constants/AiModels';
 import { DISCIPLINES } from '@/constants/Disciplines';
 import JSZip from 'jszip';
@@ -177,9 +177,14 @@ const HighlightedText = ({ text }) => {
   );
 };
 
+// Truncamento: um abstract que termina sem pontuação final foi cortado no meio
+// da frase (ex.: bateu no teto de tokens). Cap-independente e some ao regenerar.
+const endsWithSentencePunctuation = (t) => /[.!?]["'”’)\]]?\s*$/.test((t || '').trim());
+
 const ModelCard = ({ summary, highlighted = false, analysisId = null, doi = null, onRegenerated }) => {
   const [regenLoading, setRegenLoading] = useState(false);
   const isError = summary?.content?.includes('ERRO');
+  const looksTruncated = !isError && !!summary?.content && !endsWithSentencePunctuation(summary.content);
   const wordCount = summary?.content ? summary.content.trim().split(/\s+/).filter(Boolean).length : 0;
   const style = PROVIDER_STYLES[summary?.provider] || { headerBg: 'bg-stone-50', label: summary?.provider || 'Desconhecido' };
 
@@ -235,6 +240,13 @@ const ModelCard = ({ summary, highlighted = false, analysisId = null, doi = null
           {regenLoading ? 'Gerando…' : 'Regenerar'}
         </button>
       </div>
+
+      {looksTruncated && (
+        <div className="px-5 py-2 bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-800/40 flex items-center gap-2 text-[11px] font-bold text-amber-700 dark:text-amber-400" title="O texto termina sem pontuação final — pode ter sido cortado (ex.: por limite de tokens). Considere regenerar.">
+          <IconAlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+          Possível truncamento — termina sem pontuação final
+        </div>
+      )}
 
       <div className="px-5 py-3 border-b border-stone-100 dark:border-white/5 flex items-start justify-between gap-4 bg-stone-50/50 dark:bg-[#1e1410]/50 text-xs text-stone-600 dark:text-[#9a8070]">
         <div className="flex flex-col gap-1.5">
