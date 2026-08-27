@@ -15,7 +15,7 @@ const CONCURRENCY = 4;
 
 export default function DoiForm({ onResult, onProcessStart }) {
   const [doisInput, setDoisInput] = useState("");
-  const [selectedDiscipline, setSelectedDiscipline] = useState(DISCIPLINES[0].id);
+  const [selectedDiscipline, setSelectedDiscipline] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [completedCount, setCompletedCount] = useState(0);
@@ -55,6 +55,7 @@ export default function DoiForm({ onResult, onProcessStart }) {
     setErrorText("");
     const dois = doisInput.split(',').map(d => d.trim()).filter(d => d.length > 0);
     if (dois.length === 0) { setErrorText("DOIs inválidos."); return; }
+    if (!selectedDiscipline) { setErrorText("Por favor, selecione a disciplina do artigo."); return; }
 
     cancelRef.current = false;
     setWasCancelled(false);
@@ -154,6 +155,7 @@ export default function DoiForm({ onResult, onProcessStart }) {
           onChange={(e) => setSelectedDiscipline(e.target.value)}
           disabled={isProcessing}
         >
+          <option value="" disabled>Selecione a disciplina…</option>
           {DISCIPLINES.map(d => (
             <option key={d.id} value={d.id}>{d.label}</option>
           ))}
