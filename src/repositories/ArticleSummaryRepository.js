@@ -50,6 +50,54 @@ export class ArticleSummaryRepository {
     return analysis;
   }
 
+  /**
+   * Atualiza (ou insere, se não existir) o resumo de um modelo específico de
+   * uma análise. Usado ao regenerar apenas um modelo.
+   * @param {string} analysisId
+   * @param {{ provider: string, model_id: string, content: string, input_tokens: number, output_tokens: number, cost: number }} s
+   */
+  async upsertSummary(analysisId, s) {
+    if (!supabase) return null;
+
+    const { data: updated, error: updErr } = await supabase
+      .from('summaries')
+      .update({
+        content: s.content,
+        input_tokens: s.input_tokens,
+        output_tokens: s.output_tokens,
+        cost: s.cost,
+      })
+      .eq('analysis_id', analysisId)
+      .eq('provider', s.provider)
+      .eq('model_id', s.model_id)
+      .select('*');
+
+    if (updErr) {
+      throw new Error(`Erro ao atualizar resumo: ${updErr.message || JSON.stringify(updErr)}`);
+    }
+    if (updated && updated.length > 0) return updated[0];
+
+    // Nenhuma linha correspondente — insere (ex.: modelo novo para esta análise).
+    const { data: inserted, error: insErr } = await supabase
+      .from('summaries')
+      .insert({
+        analysis_id: analysisId,
+        provider: s.provider,
+        model_id: s.model_id,
+        content: s.content,
+        input_tokens: s.input_tokens,
+        output_tokens: s.output_tokens,
+        cost: s.cost,
+      })
+      .select('*')
+      .single();
+
+    if (insErr) {
+      throw new Error(`Erro ao inserir resumo: ${insErr.message || JSON.stringify(insErr)}`);
+    }
+    return inserted;
+  }
+
   async getAll() {
     if (!supabase) return [];
 

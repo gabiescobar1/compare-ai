@@ -17,6 +17,19 @@ export async function processSingleDoi(doiInput, selectedModels, discipline) {
   return await processor.processDoi(doiInput, selectedModels, discipline);
 }
 
+// Regenera o texto de um único modelo de uma análise já existente, sem reenviar
+// o prompt às outras IAs (economiza custo quando só uma falhou).
+export async function regenerateSummary({ analysisId, doi, provider, modelId }) {
+  await requireAuth();
+  const processor = new ArticleProcessorService();
+  const res = await processor.regenerateSummary({ analysisId, doi, provider, modelId });
+  if (res?.success) {
+    revalidatePath('/resultados');
+    revalidatePath('/analytics'); // texto novo pode mudar a contagem de bundles
+  }
+  return res;
+}
+
 import Anthropic from '@anthropic-ai/sdk';
 import { promises as fs } from 'fs';
 import path from 'path';

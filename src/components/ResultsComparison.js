@@ -1,11 +1,12 @@
 'use client';
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { IconCoin, IconFileText, IconBulb, IconDownload, IconTrash, IconChevronDown, IconBook2, IconPackage, IconCopy, IconCheck, IconSquare, IconSquareCheckFilled, IconX } from '@tabler/icons-react';
+import { IconCoin, IconFileText, IconBulb, IconDownload, IconTrash, IconChevronDown, IconBook2, IconPackage, IconCopy, IconCheck, IconSquare, IconSquareCheckFilled, IconX, IconRefresh, IconLoader2 } from '@tabler/icons-react';
 import { PROVIDERS } from '@/constants/AiModels';
 import { DISCIPLINES } from '@/constants/Disciplines';
 import JSZip from 'jszip';
 import { useLexicalBundles } from '@/contexts/LexicalBundlesContext';
+import { regenerateSummary } from '@/app/actions';
 
 const PROVIDER_STYLES = {
   openai: { headerBg: 'bg-[#e8f8c1] dark:bg-[#2a3a10]', label: 'OpenAI' },
@@ -176,10 +177,31 @@ const HighlightedText = ({ text }) => {
   );
 };
 
-const ModelCard = ({ summary, highlighted = false }) => {
+const ModelCard = ({ summary, highlighted = false, analysisId = null, doi = null, onRegenerated }) => {
+  const [regenLoading, setRegenLoading] = useState(false);
   const isError = summary?.content?.includes('ERRO');
   const wordCount = summary?.content ? summary.content.trim().split(/\s+/).filter(Boolean).length : 0;
   const style = PROVIDER_STYLES[summary?.provider] || { headerBg: 'bg-stone-50', label: summary?.provider || 'Desconhecido' };
+
+  // Reenvia o prompt apenas para este modelo e atualiza o card no lugar.
+  const handleRegenerate = async () => {
+    if (regenLoading || !analysisId || !doi) return;
+    setRegenLoading(true);
+    try {
+      const res = await regenerateSummary({ analysisId, doi, provider: summary.provider, modelId: summary.model_id });
+      if (res?.summary) onRegenerated?.(res.summary);
+    } catch (e) {
+      onRegenerated?.({
+        ...summary,
+        content: `ERRO: ${e?.message || 'Falha ao regenerar.'}`,
+        input_tokens: 0,
+        output_tokens: 0,
+        cost: 0,
+      });
+    } finally {
+      setRegenLoading(false);
+    }
+  };
 
   const handleDownload = () => {
     if (!summary?.content) return;
@@ -194,11 +216,23 @@ const ModelCard = ({ summary, highlighted = false }) => {
 
   return (
     <div className={`bg-cream dark:bg-paper-dark flex flex-col h-full rounded-3xl shadow-sm border overflow-hidden transition-all duration-300 ${highlighted ? 'border-accent ring-2 ring-accent ring-offset-2 ring-offset-transparent' : 'border-stone-200 dark:border-white/8'}`}>
-      <div className={`px-5 py-4 border-b border-stone-200 dark:border-white/8 flex items-center justify-between ${style.headerBg}`}>
-        <div className="flex flex-col">
-          <h3 className="text-base font-bold text-ink dark:text-parchment tracking-tight">{style.label}</h3>
-          <span className="text-xs text-stone-500 dark:text-[#9a8070] mt-0.5 tracking-wider">{summary?.model_id || 'Desconhecido'}</span>
+      <div className={`px-5 py-4 border-b border-stone-200 dark:border-white/8 flex items-center justify-between gap-3 ${style.headerBg}`}>
+        <div className="flex flex-col min-w-0">
+          <h3 className="text-base font-bold text-ink dark:text-parchment tracking-tight truncate">{style.label}</h3>
+          <span className="text-xs text-stone-500 dark:text-[#9a8070] mt-0.5 tracking-wider truncate">{summary?.model_id || 'Desconhecido'}</span>
         </div>
+        <button
+          type="button"
+          onClick={handleRegenerate}
+          disabled={regenLoading || !analysisId || !doi}
+          title="Reenviar o prompt apenas para este modelo"
+          className="flex-shrink-0 flex items-center gap-1.5 text-xs font-bold py-1.5 px-3 rounded-lg bg-white/60 dark:bg-black/25 hover:bg-white/90 dark:hover:bg-black/40 text-ink dark:text-parchment border border-black/5 dark:border-white/10 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {regenLoading
+            ? <IconLoader2 className="w-3.5 h-3.5 animate-spin" />
+            : <IconRefresh className="w-3.5 h-3.5" />}
+          {regenLoading ? 'Gerando…' : 'Regenerar'}
+        </button>
       </div>
 
       <div className="px-5 py-3 border-b border-stone-100 dark:border-white/5 flex items-start justify-between gap-4 bg-stone-50/50 dark:bg-[#1e1410]/50 text-xs text-stone-600 dark:text-[#9a8070]">
@@ -247,6 +281,8 @@ const ModelCard = ({ summary, highlighted = false }) => {
 export default function ResultsComparison({ data, onDelete, defaultExpanded = true, disciplineAvg = null, selectable = false, selected = false, onToggleSelect, highlighted = false, highlightModel = null }) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [copiedDoi, setCopiedDoi] = useState(false);
+  // Resumos em estado local para refletir regenerações de um único modelo.
+  const [summaries, setSummaries] = useState(data?.summaries || []);
 
   // Quando este registro é o alvo de um link do histórico, expande automaticamente.
   React.useEffect(() => {
@@ -259,7 +295,8 @@ export default function ResultsComparison({ data, onDelete, defaultExpanded = tr
   const isHighlightedModel = (summary) =>
     !!highlightModel && summary?.provider === highlightModel.provider && summary?.model_id === highlightModel.model_id;
 
-  const summaries = data.summaries || [];
+  const handleRegenerated = (idx, newSummary) =>
+    setSummaries(prev => prev.map((s, i) => (i === idx ? newSummary : s)));
   const wordCount = data.originalAbstract ? data.originalAbstract.trim().split(/\s+/).filter(Boolean).length : 0;
   const disciplineLabel = DISCIPLINES.find(d => d.id === data.discipline)?.label || data.discipline || '—';
 
@@ -423,7 +460,13 @@ export default function ResultsComparison({ data, onDelete, defaultExpanded = tr
                 <div className="flex flex-wrap justify-center gap-6">
                   {summaries.map((summary, idx) => (
                     <div key={idx} className="w-full sm:w-[calc(50%-12px)] xl:w-[calc(33.333%-16px)]">
-                      <ModelCard summary={summary} highlighted={isHighlightedModel(summary)} />
+                      <ModelCard
+                        summary={summary}
+                        highlighted={isHighlightedModel(summary)}
+                        analysisId={data.id}
+                        doi={data.doi}
+                        onRegenerated={(ns) => handleRegenerated(idx, ns)}
+                      />
                     </div>
                   ))}
                 </div>
@@ -432,7 +475,13 @@ export default function ResultsComparison({ data, onDelete, defaultExpanded = tr
                   <div className="flex gap-6" style={{ minWidth: 'max-content' }}>
                     {summaries.map((summary, idx) => (
                       <div key={idx} className="w-[320px] flex-shrink-0">
-                        <ModelCard summary={summary} highlighted={isHighlightedModel(summary)} />
+                        <ModelCard
+                          summary={summary}
+                          highlighted={isHighlightedModel(summary)}
+                          analysisId={data.id}
+                          doi={data.doi}
+                          onRegenerated={(ns) => handleRegenerated(idx, ns)}
+                        />
                       </div>
                     ))}
                   </div>

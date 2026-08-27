@@ -71,4 +71,47 @@ export class ArticleProcessorService {
       };
     }
   }
+
+  /**
+   * Regenera o resumo de UM único modelo de uma análise existente: re-busca o
+   * corpo do artigo pelo DOI, reenvia o prompt só para esse modelo e persiste.
+   * @param {{ analysisId: string, doi: string, provider: string, modelId: string }} params
+   */
+  async regenerateSummary({ analysisId, doi, provider, modelId }) {
+    try {
+      const article = await this.plosApi.fetchArticle(doi);
+      const result = await this.aiService.summarize(provider, modelId, article.title, article.bodyText);
+
+      const summary = {
+        provider,
+        model_id: modelId,
+        content: result.content,
+        input_tokens: result.inputTokens,
+        output_tokens: result.outputTokens,
+        cost: result.cost,
+      };
+
+      if (analysisId) {
+        await this.repository.upsertSummary(analysisId, summary);
+      }
+
+      const isError = !result.content || result.content.startsWith('ERRO');
+      return { success: !isError, summary };
+    } catch (error) {
+      console.error("Erro ao regenerar resumo:", error);
+      const message = error.message || 'Erro ao regenerar.';
+      return {
+        success: false,
+        error: message,
+        summary: {
+          provider,
+          model_id: modelId,
+          content: `ERRO: ${message}`,
+          input_tokens: 0,
+          output_tokens: 0,
+          cost: 0,
+        },
+      };
+    }
+  }
 }
