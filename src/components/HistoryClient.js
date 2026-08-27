@@ -13,22 +13,26 @@ export default function HistoryClient({ analyses }) {
   const [deletedIds, setDeletedIds] = useState(new Set());
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
-  // Registro apontado por um link externo (?focus=<id>): rola, expande e destaca.
-  const [focusId, setFocusId] = useState(null);
+  // Registro apontado por um link externo (?focus=<id>&p=<provider>&m=<model>):
+  // rola, expande e destaca o artigo e o card do modelo de IA exato.
+  const [focus, setFocus] = useState(null); // { id, provider, model }
 
   useEffect(() => {
-    const f = new URLSearchParams(window.location.search).get('focus');
+    const params = new URLSearchParams(window.location.search);
+    const f = params.get('focus');
     if (!f) return;
+    const provider = params.get('p') || null;
+    const model = params.get('m') || null;
     // Tudo dentro do timeout: assim, sob React Strict Mode (dev), a limpeza da
     // 1ª execução cancela antes de mexer na URL, e a 2ª ainda lê o ?focus=.
     const scrollT = setTimeout(() => {
-      setFocusId(f);
+      setFocus({ id: f, provider, model });
       document.getElementById(`analysis-${f}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       // Limpa a URL para não re-focar ao recarregar.
       window.history.replaceState(null, '', window.location.pathname);
     }, 120);
     // Remove o destaque depois de alguns segundos (o registro segue expandido).
-    const clearT = setTimeout(() => setFocusId(null), 3600);
+    const clearT = setTimeout(() => setFocus(null), 3600);
     return () => { clearTimeout(scrollT); clearTimeout(clearT); };
   }, []);
 
@@ -210,7 +214,10 @@ export default function HistoryClient({ analyses }) {
                 selectable={selectMode}
                 selected={selectedIds.has(item.id)}
                 onToggleSelect={toggleSelect}
-                highlighted={String(item.id) === String(focusId)}
+                highlighted={String(item.id) === String(focus?.id)}
+                highlightModel={String(item.id) === String(focus?.id) && focus?.provider
+                  ? { provider: focus.provider, model_id: focus.model }
+                  : null}
               />
            ))
         )}

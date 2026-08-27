@@ -124,6 +124,7 @@ export async function deleteHistoryRecord(id) {
   const success = await repo.delete(id);
   if (success) {
     revalidatePath('/resultados');
+    revalidatePath('/analytics'); // mantém a contagem de ocorrências de bundles atualizada
   }
   return success;
 }
@@ -134,6 +135,7 @@ export async function deleteHistoryRecords(ids) {
   const success = await repo.deleteMany(ids);
   if (success) {
     revalidatePath('/resultados');
+    revalidatePath('/analytics'); // mantém a contagem de ocorrências de bundles atualizada
   }
   return success;
 }

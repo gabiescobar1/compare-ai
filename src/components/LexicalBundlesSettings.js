@@ -82,7 +82,7 @@ const OccurrencesCell = ({ count, sources }) => {
             {sources.map((s, i) => (
               <Link
                 key={i}
-                href={`/resultados?focus=${s.id}`}
+                href={`/resultados?focus=${s.id}&p=${encodeURIComponent(s.provider || '')}&m=${encodeURIComponent(s.model_id || '')}`}
                 scroll={false}
                 onClick={() => setOpen(false)}
                 title="Abrir este texto no histórico"

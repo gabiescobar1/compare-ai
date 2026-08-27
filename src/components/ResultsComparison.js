@@ -176,7 +176,7 @@ const HighlightedText = ({ text }) => {
   );
 };
 
-const ModelCard = ({ summary }) => {
+const ModelCard = ({ summary, highlighted = false }) => {
   const isError = summary?.content?.includes('ERRO');
   const wordCount = summary?.content ? summary.content.trim().split(/\s+/).filter(Boolean).length : 0;
   const style = PROVIDER_STYLES[summary?.provider] || { headerBg: 'bg-stone-50', label: summary?.provider || 'Desconhecido' };
@@ -193,7 +193,7 @@ const ModelCard = ({ summary }) => {
   };
 
   return (
-    <div className="bg-cream dark:bg-paper-dark flex flex-col h-full rounded-3xl shadow-sm border border-stone-200 dark:border-white/8 overflow-hidden transition-colors duration-300">
+    <div className={`bg-cream dark:bg-paper-dark flex flex-col h-full rounded-3xl shadow-sm border overflow-hidden transition-all duration-300 ${highlighted ? 'border-accent ring-2 ring-accent ring-offset-2 ring-offset-transparent' : 'border-stone-200 dark:border-white/8'}`}>
       <div className={`px-5 py-4 border-b border-stone-200 dark:border-white/8 flex items-center justify-between ${style.headerBg}`}>
         <div className="flex flex-col">
           <h3 className="text-base font-bold text-ink dark:text-parchment tracking-tight">{style.label}</h3>
@@ -244,16 +244,20 @@ const ModelCard = ({ summary }) => {
   );
 };
 
-export default function ResultsComparison({ data, onDelete, defaultExpanded = true, disciplineAvg = null, selectable = false, selected = false, onToggleSelect, highlighted = false }) {
+export default function ResultsComparison({ data, onDelete, defaultExpanded = true, disciplineAvg = null, selectable = false, selected = false, onToggleSelect, highlighted = false, highlightModel = null }) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [copiedDoi, setCopiedDoi] = useState(false);
 
   // Quando este registro é o alvo de um link do histórico, expande automaticamente.
   React.useEffect(() => {
-    if (highlighted) setIsExpanded(true);
-  }, [highlighted]);
+    if (highlighted || highlightModel) setIsExpanded(true);
+  }, [highlighted, highlightModel]);
 
   if (!data) return null;
+
+  // Card do modelo de IA exato que gerou o texto apontado pelo link.
+  const isHighlightedModel = (summary) =>
+    !!highlightModel && summary?.provider === highlightModel.provider && summary?.model_id === highlightModel.model_id;
 
   const summaries = data.summaries || [];
   const wordCount = data.originalAbstract ? data.originalAbstract.trim().split(/\s+/).filter(Boolean).length : 0;
@@ -419,7 +423,7 @@ export default function ResultsComparison({ data, onDelete, defaultExpanded = tr
                 <div className="flex flex-wrap justify-center gap-6">
                   {summaries.map((summary, idx) => (
                     <div key={idx} className="w-full sm:w-[calc(50%-12px)] xl:w-[calc(33.333%-16px)]">
-                      <ModelCard summary={summary} />
+                      <ModelCard summary={summary} highlighted={isHighlightedModel(summary)} />
                     </div>
                   ))}
                 </div>
@@ -428,7 +432,7 @@ export default function ResultsComparison({ data, onDelete, defaultExpanded = tr
                   <div className="flex gap-6" style={{ minWidth: 'max-content' }}>
                     {summaries.map((summary, idx) => (
                       <div key={idx} className="w-[320px] flex-shrink-0">
-                        <ModelCard summary={summary} />
+                        <ModelCard summary={summary} highlighted={isHighlightedModel(summary)} />
                       </div>
                     ))}
                   </div>
