@@ -4,6 +4,10 @@ import Anthropic from '@anthropic-ai/sdk';
 import { calculateCost } from '@/constants/AiModels';
 import { buildAbstractPrompt, SYSTEM_PROMPT } from '@/constants/AiPrompt';
 
+// Teto de tokens de saída. 1024 era baixo e cortava abstracts longos no meio
+// da frase; 2048 comporta com folga um abstract completo (~1500 palavras).
+const MAX_OUTPUT_TOKENS = 2048;
+
 export class AIService {
   constructor() {
     // Prompt compartilhado com o modal de transparência (ver AiPrompt.js).
@@ -33,8 +37,8 @@ export class AIService {
 
       const usesCompletionTokens = this._usesCompletionTokens(modelId);
       const tokenParam = usesCompletionTokens
-        ? { max_completion_tokens: 1024 }
-        : { max_tokens: 1024 };
+        ? { max_completion_tokens: MAX_OUTPUT_TOKENS }
+        : { max_tokens: MAX_OUTPUT_TOKENS };
 
       // Modelos de raciocínio (gpt-5.x, o1, o3) só aceitam a temperatura padrão.
       const samplingParam = usesCompletionTokens ? {} : { temperature: 0.3 };
@@ -97,7 +101,7 @@ export class AIService {
 
       const response = await anthropic.messages.create({
         model: modelId,
-        max_tokens: 1024,
+        max_tokens: MAX_OUTPUT_TOKENS,
         system: SYSTEM_PROMPT,
         messages: [
           { role: 'user', content: prompt }

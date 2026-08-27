@@ -186,6 +186,7 @@ const ModelCard = ({ summary, highlighted = false, analysisId = null, doi = null
   // Reenvia o prompt apenas para este modelo e atualiza o card no lugar.
   const handleRegenerate = async () => {
     if (regenLoading || !analysisId || !doi) return;
+    if (!window.confirm(`Regenerar o abstract apenas de ${style.label} (${summary.model_id})?\n\nIsso fará uma nova chamada paga a esta IA. As outras não serão afetadas.`)) return;
     setRegenLoading(true);
     try {
       const res = await regenerateSummary({ analysisId, doi, provider: summary.provider, modelId: summary.model_id });
