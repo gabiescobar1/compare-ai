@@ -308,6 +308,11 @@ export default function ResultsComparison({ data, onDelete, defaultExpanded = tr
   const isHighlightedModel = (summary) =>
     !!highlightModel && summary?.provider === highlightModel.provider && summary?.model_id === highlightModel.model_id;
 
+  // Algum abstract deste artigo terminou sem pontuação final (possível corte)?
+  const anyTruncated = summaries.some(
+    s => s?.content && !s.content.includes('ERRO') && !endsWithSentencePunctuation(s.content)
+  );
+
   const handleRegenerated = (idx, newSummary) =>
     setSummaries(prev => prev.map((s, i) => (i === idx ? newSummary : s)));
   const wordCount = data.originalAbstract ? data.originalAbstract.trim().split(/\s+/).filter(Boolean).length : 0;
@@ -391,6 +396,14 @@ export default function ResultsComparison({ data, onDelete, defaultExpanded = tr
             <span className="flex items-center gap-1">
               {summaries.length} modelo{summaries.length !== 1 ? 's' : ''}
             </span>
+            {anyTruncated && (
+              <span
+                className="flex items-center gap-1 font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 px-2 py-0.5 rounded-full"
+                title="Algum abstract deste artigo termina sem pontuação final — pode ter sido cortado. Expanda para ver e regenerar."
+              >
+                <IconAlertTriangle className="w-3.5 h-3.5" /> Possível truncamento
+              </span>
+            )}
           </div>
         </div>
 
