@@ -2,11 +2,11 @@
 
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import Link from 'next/link';
 import { useLexicalBundles } from '@/contexts/LexicalBundlesContext';
 import { IconSettings, IconCheck, IconFileSpreadsheet, IconTrash, IconChevronDown, IconChevronUp, IconAlertTriangle, IconX, IconBook2, IconRobot, IconChevronRight } from '@tabler/icons-react';
 import * as XLSX from 'xlsx';
 import { DISCIPLINES } from '@/constants/Disciplines';
+import AbstractModal from './AbstractModal';
 
 const PROVIDER_LABELS = { openai: 'OpenAI', gemini: 'Google Gemini', claude: 'Anthropic Claude' };
 const providerLabel = (p) => PROVIDER_LABELS[p] || (p ? p.charAt(0).toUpperCase() + p.slice(1) : 'Desconhecido');
@@ -14,7 +14,7 @@ const providerLabel = (p) => PROVIDER_LABELS[p] || (p ? p.charAt(0).toUpperCase(
 // Célula da coluna "Ocorrências (IA)": número clicável que abre uma caixinha
 // (portal, posição fixa) listando onde o bundle apareceu — DOI, título,
 // disciplina e a IA responsável. Rola por dentro quando há muitos textos.
-const OccurrencesCell = ({ count, sources }) => {
+const OccurrencesCell = ({ count, sources, bundle, onViewText }) => {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState({ top: 0, left: 0 });
 
@@ -80,13 +80,12 @@ const OccurrencesCell = ({ count, sources }) => {
           </div>
           <div className="flex flex-col gap-2 max-h-60 overflow-y-auto custom-scrollbar">
             {sources.map((s, i) => (
-              <Link
+              <button
                 key={i}
-                href={`/resultados?focus=${s.id}&p=${encodeURIComponent(s.provider || '')}&m=${encodeURIComponent(s.model_id || '')}`}
-                scroll={false}
-                onClick={() => setOpen(false)}
-                title="Abrir este texto no histórico"
-                className="group bg-stone-50 dark:bg-white/2 border border-stone-100 dark:border-white/5 rounded-lg px-3 py-2 flex flex-col gap-1 hover:border-accent/40 hover:bg-accent/5 transition-colors"
+                type="button"
+                onClick={() => { onViewText({ title: providerLabel(s.provider), discipline: s.discipline, doi: s.doi, content: s.content, highlight: [bundle] }); setOpen(false); }}
+                title="Ver o texto"
+                className="group text-left w-full bg-stone-50 dark:bg-white/2 border border-stone-100 dark:border-white/5 rounded-lg px-3 py-2 flex flex-col gap-1 hover:border-accent/40 hover:bg-accent/5 transition-colors"
               >
                 <div className="flex items-center justify-between gap-2">
                   <span className="flex items-center gap-1.5 text-xs font-bold text-stone-700 dark:text-[#c4b09a] min-w-0">
@@ -109,7 +108,7 @@ const OccurrencesCell = ({ count, sources }) => {
                   <span>·</span>
                   <span className="truncate" title={s.doi}>{s.doi}</span>
                 </div>
-              </Link>
+              </button>
             ))}
           </div>
         </div>,
@@ -152,6 +151,7 @@ export default function LexicalBundlesSettings({ analyses }) {
   const [confirmClear, setConfirmClear] = useState(false);
   const fileInputRef = useRef(null);
   const [expandedDisciplines, setExpandedDisciplines] = useState({});
+  const [viewing, setViewing] = useState(null); // abstract aberto no modal
 
   // Conta ocorrências de cada bundle em TODOS os textos gerados por IA do
   // histórico (independente da disciplina do texto), como o destaque amarelo faz.
@@ -198,7 +198,7 @@ export default function LexicalBundlesSettings({ analyses }) {
         const matches = t.content.match(regex);
         if (matches && matches.length > 0) {
           ai += matches.length;
-          sources.push({ id: t.id, doi: t.doi, title: t.title, discipline: t.discipline, provider: t.provider, model_id: t.model_id, count: matches.length });
+          sources.push({ id: t.id, doi: t.doi, title: t.title, discipline: t.discipline, provider: t.provider, model_id: t.model_id, content: t.content, count: matches.length });
         }
       });
       byBundle[lowerKey] = { ai, sources };
@@ -360,6 +360,8 @@ export default function LexicalBundlesSettings({ analyses }) {
                 <OccurrencesCell
                   count={bundleStats?.[disc]?.[b.bundle]?.ai || 0}
                   sources={bundleStats?.[disc]?.[b.bundle]?.sources || []}
+                  bundle={b.bundle}
+                  onViewText={setViewing}
                 />
               </td>
             </tr>
@@ -471,6 +473,10 @@ export default function LexicalBundlesSettings({ analyses }) {
         )}
 
       </div>
+
+      {viewing && (
+        <AbstractModal {...viewing} onClose={() => setViewing(null)} />
+      )}
     </div>
   );
 }

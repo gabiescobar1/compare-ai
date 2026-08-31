@@ -2,22 +2,15 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import Link from 'next/link';
 import { IconListDetails, IconAlignLeft, IconInfoCircle, IconBook2, IconChevronDown, IconChevronRight, IconX } from '@tabler/icons-react';
 import { DISCIPLINES } from '@/constants/Disciplines';
 import { classifyAbstractFormat, isAnalyzableAbstract } from '@/utils/abstractFormat';
+import AbstractModal from './AbstractModal';
 
 const PROVIDER_LABELS = { openai: 'OpenAI', gemini: 'Google Gemini', claude: 'Anthropic Claude' };
 const PROVIDER_ORDER = ['openai', 'gemini', 'claude'];
 
 const pct = (n, total) => (total > 0 ? Math.round((n / total) * 100) : 0);
-
-// Link para abrir o texto no histórico: para IA, foca o card do modelo; para
-// originais, foca o registro (o box do Abstract Original fica dentro dele).
-const hrefFor = (it) =>
-  it.provider
-    ? `/resultados?focus=${it.id}&p=${encodeURIComponent(it.provider)}&m=${encodeURIComponent(it.model_id || '')}`
-    : `/resultados?focus=${it.id}`;
 
 // Barra empilhada: parte estruturada (accent) + parte block (slate).
 function FormatBar({ structured, block }) {
@@ -31,7 +24,7 @@ function FormatBar({ structured, block }) {
   );
 }
 
-function SourceCard({ label, structured, block, items }) {
+function SourceCard({ label, structured, block, items, onViewText }) {
   const [open, setOpen] = useState(false);
   const total = structured + block;
 
@@ -78,12 +71,12 @@ function SourceCard({ label, structured, block, items }) {
               {open && (
                 <div className="flex flex-col gap-1.5 max-h-64 overflow-y-auto custom-scrollbar mt-3">
                   {items.map((it, i) => (
-                    <Link
+                    <button
                       key={i}
-                      href={hrefFor(it)}
-                      scroll={false}
-                      title="Abrir no histórico"
-                      className="group bg-cream dark:bg-[#1e1410] border border-stone-100 dark:border-white/5 rounded-lg px-3 py-2 flex flex-col gap-1.5 hover:border-accent/40 transition-colors"
+                      type="button"
+                      onClick={() => onViewText({ ...it, sourceLabel: label })}
+                      title="Ver o texto"
+                      className="group text-left bg-cream dark:bg-[#1e1410] border border-stone-100 dark:border-white/5 rounded-lg px-3 py-2 flex flex-col gap-1.5 hover:border-accent/40 transition-colors"
                     >
                       <div className="flex items-center justify-between gap-2">
                         <span className="flex items-center gap-1.5 text-[11px] font-bold text-stone-500 dark:text-[#8a7058] min-w-0">
@@ -99,7 +92,7 @@ function SourceCard({ label, structured, block, items }) {
                           <span key={h} className="text-[10px] font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded capitalize">{h}</span>
                         ))}
                       </div>
-                    </Link>
+                    </button>
                   ))}
                 </div>
               )}
@@ -112,7 +105,7 @@ function SourceCard({ label, structured, block, items }) {
 }
 
 // Rótulo clicável: abre uma caixinha (portal) com os abstracts que o utilizaram.
-function LabelChip({ label, items }) {
+function LabelChip({ label, items, onViewText }) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState({ top: 0, left: 0 });
 
@@ -169,17 +162,16 @@ function LabelChip({ label, items }) {
             </button>
           </div>
           <p className="text-[10px] font-black uppercase tracking-widest text-ink/40 dark:text-[#c4b09a]/40 mb-2">
-            {items.length} abstract{items.length !== 1 ? 's' : ''} usaram
+            {items.length} abstract{items.length !== 1 ? 's' : ''} usaram · clique para ler
           </p>
           <div className="flex flex-col gap-1.5 max-h-64 overflow-y-auto custom-scrollbar">
             {items.map((it, i) => (
-              <Link
+              <button
                 key={i}
-                href={hrefFor(it)}
-                scroll={false}
-                onClick={() => setOpen(false)}
-                title="Abrir no histórico"
-                className="group bg-stone-50 dark:bg-white/2 border border-stone-100 dark:border-white/5 rounded-lg px-3 py-2 flex flex-col gap-1 hover:border-accent/40 transition-colors"
+                type="button"
+                onClick={() => { onViewText(it); setOpen(false); }}
+                title="Ver o texto"
+                className="group text-left bg-stone-50 dark:bg-white/2 border border-stone-100 dark:border-white/5 rounded-lg px-3 py-2 flex flex-col gap-1 hover:border-accent/40 transition-colors"
               >
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-bold text-stone-700 dark:text-[#c4b09a] truncate">{it.sourceLabel}</span>
@@ -191,7 +183,7 @@ function LabelChip({ label, items }) {
                   <span>·</span>
                   <span className="truncate" title={it.doi}>{it.doi}</span>
                 </div>
-              </Link>
+              </button>
             ))}
           </div>
         </div>,
@@ -202,6 +194,8 @@ function LabelChip({ label, items }) {
 }
 
 export default function FormatAnalysis({ analyses }) {
+  const [viewing, setViewing] = useState(null); // abstract aberto no modal
+
   const { sources, headingRanking, originalPct, aiPct } = useMemo(() => {
     const acc = {}; // key -> { label, structured, block, items }
     const headingItems = {}; // rótulo -> [ { ...meta, sourceLabel } ]
@@ -212,10 +206,11 @@ export default function FormatAnalysis({ analyses }) {
       const { format, headings } = classifyAbstractFormat(text);
       if (!acc[key]) acc[key] = { label, structured: 0, block: 0, items: [] };
       if (format === 'structured') {
+        const entry = { ...meta, headings, content: text };
         acc[key].structured += 1;
-        acc[key].items.push({ ...meta, headings });
+        acc[key].items.push(entry);
         headings.forEach(h => {
-          (headingItems[h] = headingItems[h] || []).push({ ...meta, sourceLabel: label });
+          (headingItems[h] = headingItems[h] || []).push({ ...entry, sourceLabel: label });
         });
       } else {
         acc[key].block += 1;
@@ -225,7 +220,7 @@ export default function FormatAnalysis({ analyses }) {
 
     (analyses || []).forEach(a => {
       const discipline = DISCIPLINES.find(d => d.id === a.discipline)?.label || a.discipline || 'Desconhecida';
-      bump('original', 'Originais (DOIs)', { id: a.id, doi: a.doi, title: a.title, discipline, provider: null, model_id: null }, a.originalAbstract, false);
+      bump('original', 'Originais (DOIs)', { id: a.id, doi: a.doi, title: a.title, discipline }, a.originalAbstract, false);
       (a.summaries || []).forEach(s => {
         bump(s.provider, PROVIDER_LABELS[s.provider] || s.provider, { id: a.id, doi: a.doi, title: a.title, discipline, provider: s.provider, model_id: s.model_id }, s.content, true);
       });
@@ -264,7 +259,7 @@ export default function FormatAnalysis({ analyses }) {
             Abstracts <strong>estruturados</strong> trazem rótulos de seção antes de cada movimento retórico
             (ex.: <em>Background:</em>, <em>Methods:</em>, <em>Results:</em>, <em>Conclusions:</em>).
             Abstracts <strong>block</strong> são escritos em um único bloco corrido, sem rótulos.
-            Clique em <em>“Ver quais são estruturados”</em> para listar os abstracts e os rótulos detectados.
+            Em cada fonte, clique em <em>“Ver quais são estruturados”</em> para listar os abstracts e abri-los.
           </p>
         </div>
 
@@ -277,7 +272,7 @@ export default function FormatAnalysis({ analyses }) {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {sources.map(s => (
-                <SourceCard key={s.key} label={s.label} structured={s.structured} block={s.block} items={s.items} />
+                <SourceCard key={s.key} label={s.label} structured={s.structured} block={s.block} items={s.items} onViewText={setViewing} />
               ))}
             </div>
           )}
@@ -304,15 +299,28 @@ export default function FormatAnalysis({ analyses }) {
               Rótulos de seção mais comuns (nos estruturados)
             </h3>
             <p className="text-xs text-stone-500 dark:text-[#9a8070] mt-2">
-              Clique em um rótulo para ver quais abstracts o utilizaram (com link para o histórico).
+              Clique em um rótulo para listar os abstracts que o utilizaram; clique em um abstract para ler o texto.
             </p>
           </div>
           <div className="p-8 flex flex-wrap gap-3">
             {headingRanking.map(([label, items]) => (
-              <LabelChip key={label} label={label} items={items} />
+              <LabelChip key={label} label={label} items={items} onViewText={setViewing} />
             ))}
           </div>
         </div>
+      )}
+
+      {viewing && (
+        <AbstractModal
+          title={viewing.sourceLabel}
+          discipline={viewing.discipline}
+          doi={viewing.doi}
+          content={viewing.content}
+          highlight={viewing.headings}
+          withColon
+          chips={viewing.headings}
+          onClose={() => setViewing(null)}
+        />
       )}
     </div>
   );
