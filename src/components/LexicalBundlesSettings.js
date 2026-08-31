@@ -3,7 +3,7 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useLexicalBundles } from '@/contexts/LexicalBundlesContext';
-import { IconSettings, IconCheck, IconFileSpreadsheet, IconTrash, IconChevronDown, IconChevronUp, IconAlertTriangle, IconX, IconBook2, IconRobot, IconChevronRight } from '@tabler/icons-react';
+import { IconSettings, IconCheck, IconFileSpreadsheet, IconTrash, IconChevronDown, IconChevronUp, IconAlertTriangle, IconX, IconBook2, IconRobot, IconChevronRight, IconLoader2, IconClock } from '@tabler/icons-react';
 import * as XLSX from 'xlsx';
 import { DISCIPLINES } from '@/constants/Disciplines';
 import AbstractModal from './AbstractModal';
@@ -145,13 +145,25 @@ const toNumberOrNull = (val) => {
 };
 
 export default function LexicalBundlesSettings({ analyses }) {
-  const { bundles, setBundles } = useLexicalBundles();
+  const { bundles, setBundles, uploadedAt } = useLexicalBundles();
   const [saved, setSaved] = useState(false);
   const [uploadError, setUploadError] = useState(null);
   const [confirmClear, setConfirmClear] = useState(false);
   const fileInputRef = useRef(null);
   const [expandedDisciplines, setExpandedDisciplines] = useState({});
   const [viewing, setViewing] = useState(null); // abstract aberto no modal
+  const [processing, setProcessing] = useState(false); // spinner durante o upload/recomputo
+
+  // Formata a data do último upload (ex.: 27/08/2026 14:30). Só no cliente.
+  const formatUploadDate = (iso) => {
+    try {
+      return new Date(iso).toLocaleString('pt-BR', {
+        day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
+      });
+    } catch {
+      return null;
+    }
+  };
 
   // Conta ocorrências de cada bundle em TODOS os textos gerados por IA do
   // histórico (independente da disciplina do texto), como o destaque amarelo faz.
@@ -229,11 +241,15 @@ export default function LexicalBundlesSettings({ analyses }) {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploadError(null);
+    setProcessing(true);
 
     const reader = new FileReader();
     reader.onload = (evt) => {
+      const bstr = evt.target.result;
+      // Adia o processamento pesado (parse + recomputo dos cruzamentos) para que
+      // o spinner de carregamento seja pintado antes de bloquear a thread.
+      setTimeout(() => {
       try {
-        const bstr = evt.target.result;
         const wb = XLSX.read(bstr, { type: 'binary' });
         const wsname = wb.SheetNames[0];
         const ws = wb.Sheets[wsname];
@@ -320,11 +336,13 @@ export default function LexicalBundlesSettings({ analyses }) {
       } catch (err) {
         console.error("Erro ao ler arquivo excel", err);
         setUploadError("Erro ao ler o arquivo Excel. Verifique se o formato está correto.");
+      } finally {
+        setProcessing(false);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
       }
-      
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+      }, 30);
     };
     reader.readAsBinaryString(file);
   };
@@ -394,18 +412,28 @@ export default function LexicalBundlesSettings({ analyses }) {
           />
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="flex-1 w-full sm:w-auto flex items-center justify-center gap-2 text-sm font-bold py-3 px-6 rounded-xl bg-stone-100 hover:bg-stone-200 dark:bg-[#3a2a1e] dark:hover:bg-[#4a3a2e] text-ink dark:text-parchment transition-colors border border-stone-200 dark:border-white/10"
+            disabled={processing}
+            className="flex-1 w-full sm:w-auto flex items-center justify-center gap-2 text-sm font-bold py-3 px-6 rounded-xl bg-stone-100 hover:bg-stone-200 dark:bg-[#3a2a1e] dark:hover:bg-[#4a3a2e] text-ink dark:text-parchment transition-colors border border-stone-200 dark:border-white/10 disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            <IconFileSpreadsheet className="w-5 h-5 text-green-600 dark:text-green-400" />
-            Escolher arquivo Excel
+            {processing
+              ? <IconLoader2 className="w-5 h-5 animate-spin text-accent" />
+              : <IconFileSpreadsheet className="w-5 h-5 text-green-600 dark:text-green-400" />}
+            {processing ? 'Processando planilha…' : 'Escolher arquivo Excel'}
           </button>
-          
-          {saved && (
+
+          {saved && !processing && (
              <span className="flex items-center gap-1.5 text-xs font-bold text-green-600 dark:text-green-400">
                <IconCheck className="w-4 h-4" /> Importado!
              </span>
           )}
         </div>
+
+        {uploadedAt && !processing && (
+          <p className="flex items-center gap-1.5 text-xs text-stone-500 dark:text-[#9a8070]">
+            <IconClock className="w-3.5 h-3.5 flex-shrink-0" />
+            Último upload realizado em {formatUploadDate(uploadedAt)}.
+          </p>
+        )}
 
         {uploadError && (
           <div className="flex items-center gap-2 text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/40 rounded-xl px-4 py-3">
