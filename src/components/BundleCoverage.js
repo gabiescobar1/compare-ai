@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { useLexicalBundles } from '@/contexts/LexicalBundlesContext';
-import { DISCIPLINES } from '@/constants/Disciplines';
+import { DISCIPLINES, disciplineIdFromName } from '@/constants/Disciplines';
 import { IconTargetArrow, IconInfoCircle } from '@tabler/icons-react';
 
 const PROVIDERS = [
@@ -27,21 +27,26 @@ export default function BundleCoverage({ analyses }) {
       return { loaded: false, rows: [], best: null, unmatched: [] };
     }
 
-    // Agrupa análises pelo rótulo de disciplina.
-    const byDisc = {};
+    // Agrupa análises por id de disciplina (resolvendo idioma/acento).
+    const byId = {};
     analyses.forEach(a => {
-      const label = DISCIPLINES.find(d => d.id === a.discipline)?.label || a.discipline || 'Desconhecida';
-      (byDisc[label] = byDisc[label] || []).push(a);
+      const id = disciplineIdFromName(a.discipline) || a.discipline || 'unknown';
+      (byId[id] = byId[id] || []).push(a);
     });
 
+    // Casa cada seção da planilha a um id de disciplina (pt/en, com/sem acento).
     const bundleKeys = Object.keys(bundles);
+    const keyForId = {};
     const matchedKeys = new Set();
-    const rows = [];
+    bundleKeys.forEach(k => {
+      const id = disciplineIdFromName(k);
+      if (id && !keyForId[id]) { keyForId[id] = k; matchedKeys.add(k); }
+    });
 
-    Object.keys(byDisc).forEach(discLabel => {
-      const matchKey = bundleKeys.find(k => k.toLowerCase() === discLabel.toLowerCase());
+    const rows = [];
+    Object.keys(byId).forEach(id => {
+      const matchKey = keyForId[id];
       if (!matchKey) return;
-      matchedKeys.add(matchKey);
 
       const refBundles = [...new Set(
         bundles[matchKey].map(bundleStr).filter(Boolean).map(s => s.toLowerCase())
@@ -49,7 +54,7 @@ export default function BundleCoverage({ analyses }) {
       if (refBundles.length === 0) return;
 
       const regexes = refBundles.map(b => new RegExp(`\\b(${escapeRegExp(b)})\\b`, 'i'));
-      const analysesD = byDisc[discLabel];
+      const analysesD = byId[id];
 
       // Cobertura = nº de bundles de referência que aparecem em ao menos um texto do grupo.
       const coverageFor = (getTexts) => {
@@ -72,7 +77,7 @@ export default function BundleCoverage({ analyses }) {
         );
       });
 
-      rows.push({ discipline: discLabel, refCount: refBundles.length, original, perProvider });
+      rows.push({ discipline: DISCIPLINES.find(d => d.id === id)?.label || id, refCount: refBundles.length, original, perProvider });
     });
 
     rows.sort((a, b) => a.discipline.localeCompare(b.discipline));
