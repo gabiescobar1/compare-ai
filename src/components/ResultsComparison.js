@@ -14,11 +14,20 @@ const PROVIDER_STYLES = {
   claude: { headerBg: 'bg-[#f9dcc4] dark:bg-[#3a2010]', label: 'Anthropic Claude' },
 };
 
-// Caixinha (popover) que lista as disciplinas em que um lexical bundle aparece
-// segundo a planilha. Renderizada em portal com posição fixa para não ser
-// cortada pelo container de rolagem do texto. Dispensável clicando fora ou no X.
-const BundleDisciplinesPopover = ({ bundle, disciplines, top, left, onClose }) => {
-  const width = 260;
+// Fundo do realce por profundidade (nº de bundles sobrepostos naquele trecho):
+// quanto mais bundles ali, mais escuro — mostrando visualmente a sobreposição.
+const HL_BG = [
+  'bg-yellow-200 dark:bg-yellow-500/30', // 1 bundle
+  'bg-yellow-300 dark:bg-yellow-500/50', // 2 sobrepostos
+  'bg-yellow-400 dark:bg-yellow-500/70', // 3+ sobrepostos
+];
+const bgForDepth = (n) => HL_BG[Math.min(Math.max(n, 1), 3) - 1];
+
+// Caixinha (popover) que lista os lexical bundles presentes no trecho clicado
+// (podem ser vários, sobrepostos) e, para cada um, as disciplinas da planilha.
+// Renderizada em portal com posição fixa para não ser cortada pelo container.
+const BundleDisciplinesPopover = ({ items, top, left, onClose }) => {
+  const width = 280;
   const viewportW = typeof window !== 'undefined' ? window.innerWidth : 9999;
   const clampedLeft = Math.max(12, Math.min(left, viewportW - width - 12));
 
@@ -30,10 +39,9 @@ const BundleDisciplinesPopover = ({ bundle, disciplines, top, left, onClose }) =
       className="z-[100] bg-cream dark:bg-paper-dark border border-stone-200 dark:border-white/10 rounded-2xl shadow-xl p-4"
     >
       <div className="flex items-start justify-between gap-2 mb-3">
-        <div className="min-w-0">
-          <p className="text-[10px] font-black uppercase tracking-widest text-ink/40 dark:text-[#c4b09a]/40">Lexical bundle</p>
-          <p className="text-sm font-bold text-ink dark:text-parchment break-words">“{bundle}”</p>
-        </div>
+        <p className="text-[10px] font-black uppercase tracking-widest text-ink/40 dark:text-[#c4b09a]/40">
+          {items.length > 1 ? `${items.length} bundles sobrepostos` : 'Lexical bundle'}
+        </p>
         <button
           onClick={onClose}
           title="Fechar"
@@ -42,21 +50,27 @@ const BundleDisciplinesPopover = ({ bundle, disciplines, top, left, onClose }) =
           <IconX className="w-4 h-4" />
         </button>
       </div>
-      <p className="text-[10px] font-black uppercase tracking-widest text-ink/40 dark:text-[#c4b09a]/40 mb-2">
-        Aparece em {disciplines.length} disciplina{disciplines.length !== 1 ? 's' : ''}
-      </p>
-      {disciplines.length === 0 ? (
-        <p className="text-xs text-stone-400 dark:text-[#8a7058]">Não identificado na planilha.</p>
-      ) : (
-        <div className="flex flex-col gap-1.5 max-h-56 overflow-y-auto custom-scrollbar">
-          {disciplines.map((d) => (
-            <div key={d} className="flex items-center gap-2 bg-stone-50 dark:bg-white/2 border border-stone-100 dark:border-white/5 rounded-lg px-3 py-1.5">
-              <IconBook2 className="w-3.5 h-3.5 text-accent flex-shrink-0" />
-              <span className="text-xs font-medium text-stone-700 dark:text-[#c4b09a] truncate" title={d}>{d}</span>
-            </div>
-          ))}
-        </div>
-      )}
+      <div className="flex flex-col gap-3 max-h-72 overflow-y-auto custom-scrollbar">
+        {items.map((it) => (
+          <div key={it.bundle} className="border-t border-stone-100 dark:border-white/5 first:border-t-0 pt-3 first:pt-0">
+            <p className="text-sm font-bold text-ink dark:text-parchment break-words mb-1.5">“{it.bundle}”</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-ink/40 dark:text-[#c4b09a]/40 mb-1.5">
+              Aparece em {it.disciplines.length} disciplina{it.disciplines.length !== 1 ? 's' : ''}
+            </p>
+            {it.disciplines.length === 0 ? (
+              <p className="text-xs text-stone-400 dark:text-[#8a7058]">Não identificado na planilha.</p>
+            ) : (
+              <div className="flex flex-wrap gap-1.5">
+                {it.disciplines.map((d) => (
+                  <span key={d} className="flex items-center gap-1 bg-stone-50 dark:bg-white/2 border border-stone-100 dark:border-white/5 rounded-lg px-2 py-1 text-xs font-medium text-stone-700 dark:text-[#c4b09a]">
+                    <IconBook2 className="w-3 h-3 text-accent flex-shrink-0" /> {d}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
@@ -64,7 +78,7 @@ const BundleDisciplinesPopover = ({ bundle, disciplines, top, left, onClose }) =
 const HighlightedText = ({ text }) => {
   const { bundles } = useLexicalBundles();
   const [mounted, setMounted] = useState(false);
-  // Popover aberto: { key, bundle, disciplines, top, left } — key identifica a ocorrência clicada.
+  // Popover aberto: { key, items, top, left } — key identifica o trecho clicado.
   const [popover, setPopover] = useState(null);
 
   React.useEffect(() => {
@@ -75,7 +89,6 @@ const HighlightedText = ({ text }) => {
   React.useEffect(() => {
     if (!popover) return;
     const close = () => setPopover(null);
-    // Ao rolar, não fecha se a rolagem for dentro do próprio popover.
     const closeOnScroll = (e) => {
       if (e.target?.closest?.('[data-bundle-popover]')) return;
       setPopover(null);
@@ -94,8 +107,7 @@ const HighlightedText = ({ text }) => {
 
   const isArrayBundles = Array.isArray(bundles);
 
-  // Destaca bundles de TODAS as disciplinas (união, sem duplicar por texto).
-  // A lista de cada disciplina pode conter strings (legado) ou objetos { bundle, ... }.
+  // União de bundles de TODAS as disciplinas (sem duplicar por texto).
   const bundleStrings = [];
   const seen = new Set();
   const collect = (list) => {
@@ -117,7 +129,6 @@ const HighlightedText = ({ text }) => {
 
   if (bundleStrings.length === 0) return <>{text}</>;
 
-  // Todas as disciplinas da planilha em que o bundle aparece (varre todas as seções).
   const disciplinesForBundle = (bundleText) => {
     if (isArrayBundles) return [];
     const target = bundleText.toLowerCase();
@@ -126,47 +137,70 @@ const HighlightedText = ({ text }) => {
     );
   };
 
-  const sortedBundles = [...bundleStrings].sort((a, b) => b.length - a.length);
   const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const pattern = sortedBundles.map(escapeRegExp).join('|');
-  const regex = new RegExp(`\\b(${pattern})\\b`, 'gi');
 
-  const parts = text.split(regex);
+  // Acha TODAS as ocorrências de cada bundle (inclusive sobrepostas). Um pré-filtro
+  // por includes evita rodar regex para os bundles que claramente não aparecem.
+  const lowerText = text.toLowerCase();
+  const intervals = []; // { start, end, bundle }
+  bundleStrings.forEach((b) => {
+    if (!lowerText.includes(b.toLowerCase())) return;
+    const re = new RegExp(`\\b(${escapeRegExp(b)})\\b`, 'gi');
+    let m;
+    while ((m = re.exec(text)) !== null) {
+      intervals.push({ start: m.index, end: m.index + m[0].length, bundle: b });
+      if (m.index === re.lastIndex) re.lastIndex += 1;
+    }
+  });
 
-  const openPopover = (e, bundleText, key) => {
+  if (intervals.length === 0) return <>{text}</>;
+
+  // Segmenta o texto nos pontos de início/fim; cada segmento conhece os bundles
+  // que o cobrem (profundidade = tamanho dessa lista).
+  const points = new Set([0, text.length]);
+  intervals.forEach((iv) => { points.add(iv.start); points.add(iv.end); });
+  const cuts = [...points].sort((a, b) => a - b);
+
+  const segments = [];
+  for (let i = 0; i < cuts.length - 1; i++) {
+    const s = cuts[i];
+    const e = cuts[i + 1];
+    if (e <= s) continue;
+    const covering = intervals.filter((iv) => iv.start <= s && iv.end >= e).map((iv) => iv.bundle);
+    segments.push({ text: text.slice(s, e), bundles: covering });
+  }
+
+  const openPopover = (e, seg, key) => {
     e.stopPropagation();
     if (popover?.key === key) { setPopover(null); return; }
     const rect = e.currentTarget.getBoundingClientRect();
     setPopover({
       key,
-      bundle: bundleText,
-      disciplines: disciplinesForBundle(bundleText),
-      top: Math.max(12, Math.min(rect.bottom + 6, window.innerHeight - 320)),
+      items: seg.bundles.map((b) => ({ bundle: b, disciplines: disciplinesForBundle(b) })),
+      top: Math.max(12, Math.min(rect.bottom + 6, window.innerHeight - 340)),
       left: rect.left,
     });
   };
 
   return (
     <>
-      {parts.map((part, i) => {
-        if (part && sortedBundles.some(b => b.toLowerCase() === part.toLowerCase())) {
-          return (
-            <mark
-              key={i}
-              onClick={(e) => openPopover(e, part, i)}
-              title="Ver disciplinas em que aparece"
-              className="bg-yellow-200 dark:bg-yellow-500/30 text-inherit px-0.5 rounded font-medium cursor-pointer hover:bg-yellow-300 dark:hover:bg-yellow-500/50 transition-colors"
-            >
-              {part}
-            </mark>
-          );
-        }
-        return part;
+      {segments.map((seg, i) => {
+        if (seg.bundles.length === 0) return <React.Fragment key={i}>{seg.text}</React.Fragment>;
+        const depth = seg.bundles.length;
+        return (
+          <mark
+            key={i}
+            onClick={(e) => openPopover(e, seg, i)}
+            title={depth > 1 ? `${depth} bundles sobrepostos aqui — clique para ver` : 'Ver disciplinas em que aparece'}
+            className={`${bgForDepth(depth)} text-inherit px-0.5 rounded font-medium cursor-pointer transition-colors`}
+          >
+            {seg.text}
+          </mark>
+        );
       })}
       {popover && createPortal(
         <BundleDisciplinesPopover
-          bundle={popover.bundle}
-          disciplines={popover.disciplines}
+          items={popover.items}
           top={popover.top}
           left={popover.left}
           onClose={() => setPopover(null)}
