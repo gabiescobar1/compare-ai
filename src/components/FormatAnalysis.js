@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
-import { IconListDetails, IconAlignLeft, IconInfoCircle, IconBook2, IconChevronDown, IconChevronRight } from '@tabler/icons-react';
+import { IconListDetails, IconAlignLeft, IconInfoCircle, IconBook2, IconChevronDown, IconChevronRight, IconX } from '@tabler/icons-react';
 import { DISCIPLINES } from '@/constants/Disciplines';
 import { classifyAbstractFormat, isAnalyzableAbstract } from '@/utils/abstractFormat';
 
@@ -110,10 +111,100 @@ function SourceCard({ label, structured, block, items }) {
   );
 }
 
+// Rótulo clicável: abre uma caixinha (portal) com os abstracts que o utilizaram.
+function LabelChip({ label, items }) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+
+  useEffect(() => {
+    if (!open) return;
+    const close = () => setOpen(false);
+    const closeOnScroll = (e) => { if (e.target?.closest?.('[data-label-popover]')) return; setOpen(false); };
+    document.addEventListener('click', close);
+    window.addEventListener('scroll', closeOnScroll, true);
+    window.addEventListener('resize', close);
+    return () => {
+      document.removeEventListener('click', close);
+      window.removeEventListener('scroll', closeOnScroll, true);
+      window.removeEventListener('resize', close);
+    };
+  }, [open]);
+
+  const toggle = (e) => {
+    e.stopPropagation();
+    if (open) { setOpen(false); return; }
+    const r = e.currentTarget.getBoundingClientRect();
+    const width = 300;
+    const left = Math.max(12, Math.min(r.left, window.innerWidth - width - 12));
+    const top = Math.max(12, Math.min(r.bottom + 6, window.innerHeight - 340));
+    setPos({ top, left });
+    setOpen(true);
+  };
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={toggle}
+        title="Ver quais abstracts usaram este rótulo"
+        className="flex items-center gap-2 bg-stone-50 dark:bg-white/2 border border-stone-200 dark:border-white/5 rounded-xl px-3 py-2 hover:border-accent/40 transition-colors cursor-pointer"
+      >
+        <span className="text-sm font-bold text-ink dark:text-parchment capitalize">{label}</span>
+        <span className="text-[11px] font-black text-accent bg-accent/10 px-2 py-0.5 rounded-full">{items.length}</span>
+      </button>
+      {open && createPortal(
+        <div
+          data-label-popover
+          onClick={(e) => e.stopPropagation()}
+          style={{ position: 'fixed', top: pos.top, left: pos.left, width: 300 }}
+          className="z-[100] bg-cream dark:bg-paper-dark border border-stone-200 dark:border-white/10 rounded-2xl shadow-xl p-4 text-left"
+        >
+          <div className="flex items-start justify-between gap-2 mb-3">
+            <div className="min-w-0">
+              <p className="text-[10px] font-black uppercase tracking-widest text-ink/40 dark:text-[#c4b09a]/40">Rótulo</p>
+              <p className="text-sm font-bold text-ink dark:text-parchment capitalize">“{label}”</p>
+            </div>
+            <button type="button" onClick={() => setOpen(false)} title="Fechar" className="flex-shrink-0 text-stone-400 hover:text-stone-700 dark:hover:text-parchment transition-colors p-0.5">
+              <IconX className="w-4 h-4" />
+            </button>
+          </div>
+          <p className="text-[10px] font-black uppercase tracking-widest text-ink/40 dark:text-[#c4b09a]/40 mb-2">
+            {items.length} abstract{items.length !== 1 ? 's' : ''} usaram
+          </p>
+          <div className="flex flex-col gap-1.5 max-h-64 overflow-y-auto custom-scrollbar">
+            {items.map((it, i) => (
+              <Link
+                key={i}
+                href={hrefFor(it)}
+                scroll={false}
+                onClick={() => setOpen(false)}
+                title="Abrir no histórico"
+                className="group bg-stone-50 dark:bg-white/2 border border-stone-100 dark:border-white/5 rounded-lg px-3 py-2 flex flex-col gap-1 hover:border-accent/40 transition-colors"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-bold text-stone-700 dark:text-[#c4b09a] truncate">{it.sourceLabel}</span>
+                  <IconChevronRight className="w-3.5 h-3.5 flex-shrink-0 text-stone-300 dark:text-[#8a7058] group-hover:text-accent group-hover:translate-x-0.5 transition-all" />
+                </div>
+                <div className="flex items-center gap-1.5 text-[10px] text-stone-500 dark:text-[#8a7058]">
+                  <IconBook2 className="w-3 h-3 flex-shrink-0" />
+                  <span className="flex-shrink-0">{it.discipline}</span>
+                  <span>·</span>
+                  <span className="truncate" title={it.doi}>{it.doi}</span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>,
+        document.body
+      )}
+    </>
+  );
+}
+
 export default function FormatAnalysis({ analyses }) {
   const { sources, headingRanking, originalPct, aiPct } = useMemo(() => {
     const acc = {}; // key -> { label, structured, block, items }
-    const headingCounts = {};
+    const headingItems = {}; // rótulo -> [ { ...meta, sourceLabel } ]
     let aiStructured = 0, aiTotal = 0;
 
     const bump = (key, label, meta, text, isAI) => {
@@ -123,7 +214,9 @@ export default function FormatAnalysis({ analyses }) {
       if (format === 'structured') {
         acc[key].structured += 1;
         acc[key].items.push({ ...meta, headings });
-        headings.forEach(h => { headingCounts[h] = (headingCounts[h] || 0) + 1; });
+        headings.forEach(h => {
+          (headingItems[h] = headingItems[h] || []).push({ ...meta, sourceLabel: label });
+        });
       } else {
         acc[key].block += 1;
       }
@@ -145,7 +238,7 @@ export default function FormatAnalysis({ analyses }) {
       if (k !== 'original' && !PROVIDER_ORDER.includes(k)) ordered.push({ key: k, ...acc[k] });
     });
 
-    const ranking = Object.entries(headingCounts).sort((a, b) => b[1] - a[1]).slice(0, 8);
+    const ranking = Object.entries(headingItems).sort((a, b) => b[1].length - a[1].length);
     const orig = acc.original || { structured: 0, block: 0 };
     const origTotal = orig.structured + orig.block;
 
@@ -210,13 +303,13 @@ export default function FormatAnalysis({ analyses }) {
               <IconAlignLeft className="w-5 h-5 text-accent" />
               Rótulos de seção mais comuns (nos estruturados)
             </h3>
+            <p className="text-xs text-stone-500 dark:text-[#9a8070] mt-2">
+              Clique em um rótulo para ver quais abstracts o utilizaram (com link para o histórico).
+            </p>
           </div>
           <div className="p-8 flex flex-wrap gap-3">
-            {headingRanking.map(([label, count]) => (
-              <span key={label} className="flex items-center gap-2 bg-stone-50 dark:bg-white/2 border border-stone-200 dark:border-white/5 rounded-xl px-3 py-2">
-                <span className="text-sm font-bold text-ink dark:text-parchment capitalize">{label}</span>
-                <span className="text-[11px] font-black text-accent bg-accent/10 px-2 py-0.5 rounded-full">{count}</span>
-              </span>
+            {headingRanking.map(([label, items]) => (
+              <LabelChip key={label} label={label} items={items} />
             ))}
           </div>
         </div>
