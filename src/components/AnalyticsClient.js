@@ -179,7 +179,7 @@ export default function AnalyticsClient({ analyses }) {
                   <p className="text-stone-500 dark:text-[#9a8070] font-medium">Sem dados de comparação no momento.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                   {wordStats.map((stat, idx) => (
                     <div key={idx} className="bg-stone-50/50 dark:bg-white/2 border border-stone-200 dark:border-white/5 p-5 rounded-2xl flex flex-col gap-4">
                       <h4 className="font-bold text-ink dark:text-parchment text-sm truncate" title={stat.discipline}>{stat.discipline}</h4>
