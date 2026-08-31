@@ -8,6 +8,7 @@ import * as XLSX from 'xlsx';
 import LexicalBundlesSettings from './LexicalBundlesSettings';
 import DisciplineAnalysis from './DisciplineAnalysis';
 import FormatAnalysis from './FormatAnalysis';
+import BundleCoverage from './BundleCoverage';
 
 export default function AnalyticsClient({ analyses }) {
   const { bundles } = useLexicalBundles();
@@ -320,6 +321,7 @@ export default function AnalyticsClient({ analyses }) {
       {activeTab === 'bundles' && (
         <div className="space-y-6">
           <LexicalBundlesSettings analyses={analyses} />
+          <BundleCoverage analyses={analyses} />
         </div>
       )}
     </div>
