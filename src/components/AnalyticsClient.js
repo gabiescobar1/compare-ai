@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { IconInfoCircle, IconFileText, IconChevronDown, IconBook2, IconLayoutDashboard, IconListDetails } from '@tabler/icons-react';
+import { IconInfoCircle, IconFileText, IconChevronDown, IconBook2, IconLayoutDashboard, IconListDetails, IconSearch } from '@tabler/icons-react';
 import { useLexicalBundles } from '@/contexts/LexicalBundlesContext';
 import { DISCIPLINES } from '@/constants/Disciplines';
 import * as XLSX from 'xlsx';
@@ -9,6 +9,7 @@ import LexicalBundlesSettings from './LexicalBundlesSettings';
 import DisciplineAnalysis from './DisciplineAnalysis';
 import FormatAnalysis from './FormatAnalysis';
 import BundleCoverage from './BundleCoverage';
+import NgramSearch from './NgramSearch';
 
 export default function AnalyticsClient({ analyses }) {
   const { bundles } = useLexicalBundles();
@@ -131,7 +132,7 @@ export default function AnalyticsClient({ analyses }) {
     <div className="max-w-7xl mx-auto space-y-12">
       {/* Tabs Navigation */}
       <div className="flex justify-center">
-        <div className="inline-flex bg-cream dark:bg-paper-dark p-1.5 rounded-2xl border border-stone-200 dark:border-white/8 shadow-sm">
+        <div className="inline-flex flex-wrap justify-center bg-cream dark:bg-paper-dark p-1.5 rounded-2xl border border-stone-200 dark:border-white/8 shadow-sm">
           <button 
             onClick={() => setActiveTab('palavras')}
             className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'palavras' ? 'bg-accent text-white shadow-md' : 'text-stone-500 hover:text-stone-800 dark:text-[#9a8070] dark:hover:text-parchment'}`}
@@ -149,6 +150,12 @@ export default function AnalyticsClient({ analyses }) {
             className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'bundles' ? 'bg-accent text-white shadow-md' : 'text-stone-500 hover:text-stone-800 dark:text-[#9a8070] dark:hover:text-parchment'}`}
           >
             <IconBook2 className="w-4 h-4" /> Lexical Bundles
+          </button>
+          <button
+            onClick={() => setActiveTab('ngramas')}
+            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'ngramas' ? 'bg-accent text-white shadow-md' : 'text-stone-500 hover:text-stone-800 dark:text-[#9a8070] dark:hover:text-parchment'}`}
+          >
+            <IconSearch className="w-4 h-4" /> Busca de N-gramas
           </button>
         </div>
       </div>
@@ -323,6 +330,11 @@ export default function AnalyticsClient({ analyses }) {
           <LexicalBundlesSettings analyses={analyses} />
           <BundleCoverage analyses={analyses} />
         </div>
+      )}
+
+      {/* Tab: Busca de N-gramas */}
+      {activeTab === 'ngramas' && (
+        <NgramSearch analyses={analyses} />
       )}
     </div>
   );

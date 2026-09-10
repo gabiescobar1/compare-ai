@@ -8,14 +8,25 @@ const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // Destaca no texto os termos informados (rótulos de seção ou um lexical bundle).
 // withColon: destaca "termo:" (rótulos de seção); caso contrário, só o termo.
-function renderHighlighted(content, terms, withColon) {
+// loose: casa qualquer pontuação entre as palavras do termo — necessário para
+// n-gramas, que são extraídos já tokenizados e podem atravessar vírgulas
+// ("on the other hand the" casa com "on the other hand, the").
+function renderHighlighted(content, terms, withColon, loose) {
   if (!content) return content;
   const list = (terms || []).filter(Boolean);
   if (list.length === 0) return content;
-  const alt = list.map(escapeRegExp).sort((a, b) => b.length - a.length).join('|');
+  const pattern = (t) => (loose
+    ? t.trim().split(/\s+/).map(escapeRegExp).join('[^\\p{L}\\p{N}]+')
+    : escapeRegExp(t));
+  const alt = list
+    .slice()
+    .sort((a, b) => b.length - a.length)
+    .map(pattern)
+    .join('|');
+  const flags = loose ? 'giu' : 'gi';
   const re = withColon
-    ? new RegExp(`(\\*\\*)?\\b(${alt})\\b(\\*\\*)?\\s*:`, 'gi')
-    : new RegExp(`(\\*\\*)?\\b(${alt})\\b(\\*\\*)?`, 'gi');
+    ? new RegExp(`(\\*\\*)?\\b(${alt})\\b(\\*\\*)?\\s*:`, flags)
+    : new RegExp(`(\\*\\*)?\\b(${alt})\\b(\\*\\*)?`, flags);
   const out = [];
   let last = 0;
   let m;
@@ -36,9 +47,10 @@ function renderHighlighted(content, terms, withColon) {
 /**
  * Modal (pop-up) que exibe o texto de um abstract, com termos destacados.
  * @param {{ title?: string, discipline?: string, doi?: string, content: string,
- *           highlight?: string[], withColon?: boolean, chips?: string[], onClose: Function }} props
+ *           highlight?: string[], withColon?: boolean, loose?: boolean,
+ *           chips?: string[], onClose: Function }} props
  */
-export default function AbstractModal({ title, discipline, doi, content, highlight = [], withColon = false, chips = [], onClose }) {
+export default function AbstractModal({ title, discipline, doi, content, highlight = [], withColon = false, loose = false, chips = [], onClose }) {
   useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', onKey);
@@ -75,7 +87,7 @@ export default function AbstractModal({ title, discipline, doi, content, highlig
 
         <div className="px-6 py-5 overflow-y-auto custom-scrollbar">
           <p className="text-[13px] text-stone-700 dark:text-[#d4c4b0] text-justify leading-relaxed whitespace-pre-wrap">
-            {renderHighlighted(content, highlight, withColon)}
+            {renderHighlighted(content, highlight, withColon, loose)}
           </p>
         </div>
       </div>
