@@ -72,13 +72,14 @@ export default function DisciplineAnalysis({ analyses }) {
     analyses.forEach((a) => {
       const label = DISCIPLINES.find((d) => d.id === a.discipline)?.label || a.discipline || 'Desconhecida';
       if (!map[label]) {
-        map[label] = { discipline: label, summaries: [], providers: {}, analysisCount: 0, originalWords: 0, originalCount: 0 };
+        map[label] = { discipline: label, summaries: [], originals: [], providers: {}, analysisCount: 0, originalWords: 0, originalCount: 0 };
       }
       map[label].analysisCount += 1;
       const originalWords = countWords(a.originalAbstract);
       if (originalWords > 0) {
         map[label].originalWords += originalWords;
         map[label].originalCount += 1;
+        map[label].originals.push({ doi: a.doi, content: a.originalAbstract });
       }
       (a.summaries || []).forEach((s) => {
         if (!s.content || s.content.includes('ERRO')) return;
@@ -101,6 +102,23 @@ export default function DisciplineAnalysis({ analyses }) {
       .filter((d) => d.summaries.length > 0)
       .sort((a, b) => b.summaries.length - a.summaries.length);
   }, [analyses]);
+
+  // Abstracts originais por disciplina. Calculado à parte de propósito: aqui
+  // não vale o filtro "só disciplinas com abstracts gerados", senão o corpus
+  // autêntico sairia incompleto.
+  const originalsByDiscipline = useMemo(() => {
+    const map = {};
+    analyses.forEach((a) => {
+      if (countWords(a.originalAbstract) === 0) return;
+      const label = DISCIPLINES.find((d) => d.id === a.discipline)?.label || a.discipline || 'Desconhecida';
+      (map[label] = map[label] || []).push({ doi: a.doi, content: a.originalAbstract });
+    });
+    return Object.entries(map)
+      .map(([discipline, entries]) => ({ discipline, entries }))
+      .sort((x, y) => y.entries.length - x.entries.length);
+  }, [analyses]);
+
+  const totalOriginals = originalsByDiscipline.reduce((s, d) => s + d.entries.length, 0);
 
   const saveZip = async (zip, fileName) => {
     const blob = await zip.generateAsync({ type: 'blob' });
@@ -125,11 +143,14 @@ export default function DisciplineAnalysis({ analyses }) {
   const fileBase = (e) =>
     `${slug(e.doi) || 'doi'}_${providerMeta(e.provider).label.replace(/\s+/g, '_')}_${e.model_id}`;
 
+  // Nome de arquivo dos originais: só o DOI (não há IA nem modelo).
+  const originalFileBase = (e) => slug(e.doi) || 'doi';
+
   // Download achatado — usado dentro de uma disciplina específica.
-  const downloadZip = async (entries, fileName) => {
+  const downloadZip = async (entries, fileName, baseName = fileBase) => {
     if (!entries.length) return;
     const zip = new JSZip();
-    addFiles(zip, entries, fileBase);
+    addFiles(zip, entries, baseName);
     await saveZip(zip, fileName);
   };
 
@@ -156,6 +177,15 @@ export default function DisciplineAnalysis({ analyses }) {
       );
     });
     await saveZip(zip, 'abstracts_por_IA.zip');
+  };
+
+  // Corpus autêntico: todos os abstracts originais, em subpastas por disciplina.
+  const downloadAllOriginals = async () => {
+    const zip = new JSZip();
+    originalsByDiscipline.forEach((d) => {
+      addFiles(zip.folder(slug(d.discipline) || 'disciplina'), d.entries, originalFileBase);
+    });
+    await saveZip(zip, 'abstracts_originais.zip');
   };
 
   // ---------- VISÃO DE LISTA ----------
@@ -223,7 +253,8 @@ export default function DisciplineAnalysis({ analyses }) {
               <h4 className="font-serif font-black text-ink dark:text-parchment">Exportar tudo</h4>
             </div>
             <p className="text-xs text-stone-400 dark:text-[#8a7058] mb-4">
-              {totalAbstracts} abstracts gerados em {byDiscipline.length} disciplina{byDiscipline.length !== 1 ? 's' : ''} (sem os originais), organizados em subpastas.
+              {totalAbstracts} abstracts gerados em {byDiscipline.length} disciplina{byDiscipline.length !== 1 ? 's' : ''},
+              organizados em subpastas. Os {totalOriginals} abstracts originais saem à parte, para montar o corpus autêntico.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <button
@@ -239,6 +270,14 @@ export default function DisciplineAnalysis({ analyses }) {
                 className="flex items-center justify-center gap-2 text-sm font-bold py-3 px-4 rounded-xl border border-stone-200 dark:border-white/10 bg-cream dark:bg-[#1e1410] text-stone-700 dark:text-[#c4b09a] shadow-sm transition-colors hover:bg-gradient-to-r hover:from-accent hover:to-accent-2 hover:text-white hover:border-transparent disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {busy === 'all-ai' ? <IconLoader2 className="w-4 h-4 animate-spin" /> : <IconRobot className="w-4 h-4" />} Tudo, por IA (.zip)
+              </button>
+              <button
+                onClick={() => run('all-orig', downloadAllOriginals)}
+                disabled={!!busy || totalOriginals === 0}
+                title="Todos os abstracts autênticos, em subpastas por disciplina — um .txt por DOI"
+                className="sm:col-span-2 flex items-center justify-center gap-2 text-sm font-bold py-3 px-4 rounded-xl border border-stone-200 dark:border-white/10 bg-cream dark:bg-[#1e1410] text-stone-700 dark:text-[#c4b09a] shadow-sm transition-colors hover:bg-gradient-to-r hover:from-accent hover:to-accent-2 hover:text-white hover:border-transparent disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {busy === 'all-orig' ? <IconLoader2 className="w-4 h-4 animate-spin" /> : <IconFileText className="w-4 h-4" />} Abstracts originais ({totalOriginals}) — corpus autêntico (.zip)
               </button>
             </div>
           </div>
@@ -384,7 +423,7 @@ export default function DisciplineAnalysis({ analyses }) {
           <div className="flex items-center gap-2 mb-4">
             <IconPackage className="w-5 h-5 text-accent" />
             <h4 className="font-serif font-black text-ink dark:text-parchment">
-              Baixar abstracts gerados (.zip)
+              Baixar abstracts (.zip)
             </h4>
           </div>
           <div className="space-y-5">
@@ -396,7 +435,23 @@ export default function DisciplineAnalysis({ analyses }) {
             className="w-full flex items-center justify-center gap-2 text-sm font-bold py-3 px-6 rounded-xl bg-accent hover:bg-[#e05f00] text-white shadow-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {busy === 'disc-all' ? <IconLoader2 className="w-4 h-4 animate-spin" /> : <IconPackage className="w-4 h-4" />}
-            Todos os abstracts ({data.summaries.length})
+            Todos os abstracts gerados ({data.summaries.length})
+          </button>
+
+          <button
+            onClick={() =>
+              run('disc-orig', () => downloadZip(
+                data.originals,
+                `abstracts_originais_${slug(data.discipline)}.zip`,
+                originalFileBase
+              ))
+            }
+            disabled={!!busy || data.originals.length === 0}
+            title="Abstracts autênticos desta disciplina — um .txt por DOI"
+            className="w-full flex items-center justify-center gap-2 text-sm font-bold py-3 px-6 rounded-xl border border-stone-200 dark:border-white/10 bg-cream dark:bg-[#1e1410] hover:bg-stone-50 dark:hover:bg-white/5 text-stone-700 dark:text-[#c4b09a] shadow-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {busy === 'disc-orig' ? <IconLoader2 className="w-4 h-4 animate-spin" /> : <IconFileText className="w-4 h-4" />}
+            Abstracts originais ({data.originals.length})
           </button>
 
           <div>
