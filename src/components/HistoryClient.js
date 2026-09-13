@@ -5,6 +5,7 @@ import ResultsComparison, { endsWithSentencePunctuation } from '@/components/Res
 import { IconBook, IconSearch, IconChecklist, IconTrash, IconX, IconCircleCheck, IconAlertTriangle } from '@tabler/icons-react';
 import { DISCIPLINES } from '@/constants/Disciplines';
 import { deleteHistoryRecord, deleteHistoryRecords } from '@/app/actions';
+import { countWords } from '@/lib/words';
 
 export default function HistoryClient({ analyses }) {
   // Cópia local para o placar (textos gerados / truncamentos) atualizar ao vivo
@@ -85,7 +86,6 @@ export default function HistoryClient({ analyses }) {
   // Média de palavras dos abstracts (original + IAs) por disciplina.
   const disciplineAverages = useMemo(() => {
     const acc = {};
-    const countWords = (t) => (t ? t.trim().split(/\s+/).filter(Boolean).length : 0);
     analysesState.forEach(a => {
       const disc = a.discipline;
       if (!acc[disc]) acc[disc] = { words: 0, count: 0 };

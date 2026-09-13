@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import JSZip from 'jszip';
+import { countWords } from '@/lib/words';
 import {
   IconChartPie,
   IconPackage,
@@ -48,7 +49,6 @@ const providerMeta = (p) =>
     color: '#9ca3af',
   };
 
-const countWords = (t) => (t ? t.trim().split(/\s+/).filter(Boolean).length : 0);
 const slug = (s) => (s || '').replace(/[^a-z0-9]/gi, '_');
 
 export default function DisciplineAnalysis({ analyses }) {
@@ -109,7 +109,7 @@ export default function DisciplineAnalysis({ analyses }) {
   const originalsByDiscipline = useMemo(() => {
     const map = {};
     analyses.forEach((a) => {
-      if (countWords(a.originalAbstract) === 0) return;
+      if (!a.originalAbstract || countWords(a.originalAbstract) === 0) return;
       const label = DISCIPLINES.find((d) => d.id === a.discipline)?.label || a.discipline || 'Desconhecida';
       (map[label] = map[label] || []).push({ doi: a.doi, content: a.originalAbstract });
     });

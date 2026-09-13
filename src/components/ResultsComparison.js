@@ -5,6 +5,7 @@ import { IconCoin, IconFileText, IconBulb, IconDownload, IconTrash, IconChevronD
 import { PROVIDERS } from '@/constants/AiModels';
 import { DISCIPLINES } from '@/constants/Disciplines';
 import JSZip from 'jszip';
+import { countWords } from '@/lib/words';
 import { useLexicalBundles } from '@/contexts/LexicalBundlesContext';
 import { regenerateSummary } from '@/app/actions';
 
@@ -219,7 +220,7 @@ const ModelCard = ({ summary, highlighted = false, analysisId = null, doi = null
   const [regenLoading, setRegenLoading] = useState(false);
   const isError = summary?.content?.includes('ERRO');
   const looksTruncated = !isError && !!summary?.content && !endsWithSentencePunctuation(summary.content);
-  const wordCount = summary?.content ? summary.content.trim().split(/\s+/).filter(Boolean).length : 0;
+  const wordCount = countWords(summary?.content);
   const style = PROVIDER_STYLES[summary?.provider] || { headerBg: 'bg-stone-50', label: summary?.provider || 'Desconhecido' };
 
   // Reenvia o prompt apenas para este modelo e atualiza o card no lugar.
@@ -352,7 +353,7 @@ export default function ResultsComparison({ data, onDelete, defaultExpanded = tr
     setSummaries(next);
     onSummariesChange?.(next); // deixa o histórico recontar textos/truncamentos ao vivo
   };
-  const wordCount = data.originalAbstract ? data.originalAbstract.trim().split(/\s+/).filter(Boolean).length : 0;
+  const wordCount = countWords(data.originalAbstract);
   const disciplineLabel = DISCIPLINES.find(d => d.id === data.discipline)?.label || data.discipline || '—';
 
   const handleDownloadZip = async () => {
@@ -564,7 +565,7 @@ export default function ResultsComparison({ data, onDelete, defaultExpanded = tr
                   </div>
                   {summaries.map((summary, idx) => {
                     if (!summary?.content || summary.content.includes('ERRO')) return null;
-                    const cWordCount = summary.content.trim().split(/\s+/).filter(Boolean).length;
+                    const cWordCount = countWords(summary.content);
                     const providerLabel = PROVIDER_STYLES[summary.provider]?.label || summary.provider;
                     return (
                       <div key={idx} className="flex items-center gap-1.5 bg-cream dark:bg-paper-dark px-2.5 py-1.5 rounded-lg border border-stone-200 dark:border-white/5 shadow-sm">

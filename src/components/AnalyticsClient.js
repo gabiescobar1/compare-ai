@@ -10,6 +10,7 @@ import DisciplineAnalysis from './DisciplineAnalysis';
 import FormatAnalysis from './FormatAnalysis';
 import BundleCoverage from './BundleCoverage';
 import NgramSearch from './NgramSearch';
+import { countWords } from '@/lib/words';
 
 export default function AnalyticsClient({ analyses }) {
   const { bundles } = useLexicalBundles();
@@ -32,7 +33,7 @@ export default function AnalyticsClient({ analyses }) {
       }
       
       if (a.originalAbstract) {
-        const wCount = a.originalAbstract.trim().split(/\s+/).filter(Boolean).length;
+        const wCount = countWords(a.originalAbstract);
         if (wCount > 0) {
           stats[discLabel].originalWords += wCount;
           stats[discLabel].originalCount += 1;
@@ -42,7 +43,7 @@ export default function AnalyticsClient({ analyses }) {
       if (a.summaries) {
         a.summaries.forEach(s => {
           if (s.content && !s.content.includes('ERRO')) {
-            const cCount = s.content.trim().split(/\s+/).filter(Boolean).length;
+            const cCount = countWords(s.content);
             if (cCount > 0) {
               const provider = s.provider || 'Desconhecido';
               if (!stats[discLabel].aiProviders[provider]) {
@@ -82,7 +83,7 @@ export default function AnalyticsClient({ analyses }) {
         const provider = summary.provider;
         const modelId = summary.model_id;
         const content = summary.content || '';
-        const wordCount = content.trim().split(/\s+/).filter(Boolean).length;
+        const wordCount = countWords(content);
 
         if (!providerData[provider]) {
           providerData[provider] = {
