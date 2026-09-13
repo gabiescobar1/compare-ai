@@ -5,6 +5,7 @@ import JSZip from 'jszip';
 import { countWords } from '@/lib/words';
 import {
   IconChartPie,
+  IconChevronDown,
   IconPackage,
   IconArrowLeft,
   IconBook2,
@@ -54,6 +55,8 @@ const slug = (s) => (s || '').replace(/[^a-z0-9]/gi, '_');
 export default function DisciplineAnalysis({ analyses }) {
   const [selected, setSelected] = useState(null);
   const [busy, setBusy] = useState(null);
+  // A caixa começa aberta: é a seção interativa principal da aba.
+  const [aberto, setAberto] = useState(true);
 
   // Executa um download marcando o botão como ocupado (spinner + disable).
   const run = async (id, fn) => {
@@ -205,13 +208,29 @@ export default function DisciplineAnalysis({ analyses }) {
 
     return (
       <div className="bg-cream dark:bg-paper-dark rounded-3xl border border-stone-200 dark:border-white/8 shadow-sm overflow-hidden">
-        {/* Header com título dentro da caixa */}
-        <div className="px-8 py-6 border-b border-stone-100 dark:border-white/5 flex items-center gap-2">
-          <IconChartPie className="w-5 h-5 text-accent" />
-          <h3 className="font-serif font-black text-ink dark:text-parchment">Análise por Disciplina</h3>
-        </div>
+        {/* Header recolhível, como nas demais caixas do Analytics */}
+        <button
+          type="button"
+          onClick={() => setAberto(v => !v)}
+          aria-expanded={aberto}
+          className="w-full px-8 py-6 flex items-center justify-between gap-3 text-left hover:bg-stone-50/50 dark:hover:bg-white/3 transition-colors"
+        >
+          <h3 className="font-serif font-black text-ink dark:text-parchment flex items-center gap-2">
+            <IconChartPie className="w-5 h-5 text-accent" />
+            Análise por Disciplina
+          </h3>
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <span className="text-[10px] font-black uppercase tracking-widest text-ink/40 dark:text-[#c4b09a]/40 bg-stone-100 dark:bg-white/5 px-3 py-1 rounded-full">
+              {byDiscipline.length} disciplina{byDiscipline.length !== 1 ? 's' : ''}
+            </span>
+            <span className="flex items-center justify-center w-8 h-8 rounded-full bg-accent/10 text-accent">
+              <IconChevronDown className={`w-5 h-5 transition-transform duration-300 ${aberto ? 'rotate-180' : ''}`} stroke={2.5} />
+            </span>
+          </div>
+        </button>
 
-        <div className="p-8 space-y-8">
+        {aberto && (
+        <div className="p-8 space-y-8 border-t border-stone-100 dark:border-white/5">
           {/* Grade de disciplinas */}
           <div>
             <p className="text-[10px] font-black uppercase tracking-widest text-ink/40 dark:text-[#c4b09a]/40 mb-3">
@@ -282,6 +301,7 @@ export default function DisciplineAnalysis({ analyses }) {
             </div>
           </div>
         </div>
+        )}
       </div>
     );
   }
