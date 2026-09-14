@@ -13,30 +13,10 @@ import {
   IconFileText,
   IconRobot,
   IconLoader2,
-  IconUsersGroup,
-  IconPick,
-  IconCoin,
-  IconSchool,
-  IconGavel,
-  IconLanguage,
-  IconBuildingBank,
-  IconBrain,
 } from '@tabler/icons-react';
 import { DISCIPLINES } from '@/constants/Disciplines';
+import { disciplineIcon } from '@/constants/DisciplineIcons';
 import PieChart from './PieChart';
-
-// Ícone por disciplina (chave = label). Cai no livro (IconBook2) se desconhecida.
-const DISCIPLINE_ICONS = {
-  Anthropology: IconUsersGroup,
-  Archaeology: IconPick,
-  Economy: IconCoin,
-  Education: IconSchool,
-  Law: IconGavel,
-  Linguistics: IconLanguage,
-  'Political Science': IconBuildingBank,
-  Psychology: IconBrain,
-};
-const disciplineIcon = (label) => DISCIPLINE_ICONS[label] || IconBook2;
 
 const PROVIDER_META = {
   openai: { label: 'OpenAI', color: '#10a37f' },

@@ -10,6 +10,9 @@ import DisciplineAnalysis from './DisciplineAnalysis';
 import FormatAnalysis from './FormatAnalysis';
 import BundleCoverage from './BundleCoverage';
 import { countWords } from '@/lib/words';
+import { disciplineIcon } from '@/constants/DisciplineIcons';
+
+const PROVIDER_LABELS = { openai: 'OpenAI', gemini: 'Google Gemini', claude: 'Anthropic Claude' };
 
 export default function AnalyticsClient({ analyses }) {
   const { bundles } = useLexicalBundles();
@@ -174,34 +177,45 @@ export default function AnalyticsClient({ analyses }) {
               </span>
             </button>
             {showOverview && (
-            <div className="p-8 border-t border-stone-100 dark:border-white/5">
+            <div className="px-8 pt-5 pb-8 border-t border-stone-100 dark:border-white/5">
+              <p className="text-[11px] font-black uppercase tracking-widest text-ink/40 dark:text-[#c4b09a]/40 mb-4">
+                Média de palavras por abstract
+              </p>
               {wordStats.length === 0 ? (
                 <div className="py-10 text-center">
                   <p className="text-stone-500 dark:text-[#9a8070] font-medium">Sem dados de comparação no momento.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {wordStats.map((stat, idx) => (
-                    <div key={idx} className="bg-stone-50/50 dark:bg-white/2 border border-stone-200 dark:border-white/5 p-5 rounded-2xl flex flex-col gap-4">
-                      <h4 className="font-bold text-ink dark:text-parchment text-sm truncate" title={stat.discipline}>{stat.discipline}</h4>
-                      <div className="flex flex-col gap-2 text-sm text-stone-600 dark:text-[#c4b09a]">
-                        <div className="flex items-center justify-between bg-cream dark:bg-[#1e1410] px-3 py-2 rounded-xl shadow-sm border border-stone-100 dark:border-white/5">
-                          <span>Originais (Média)</span>
-                          <span className="font-black text-accent">{stat.avgOriginal}</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {wordStats.map((stat, idx) => {
+                    const DiscIcon = disciplineIcon(stat.discipline);
+                    return (
+                    <div key={idx} className="bg-stone-50/50 dark:bg-white/2 border border-stone-200 dark:border-white/5 rounded-2xl overflow-hidden">
+                      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-stone-200 dark:border-white/5">
+                        <DiscIcon className="w-[18px] h-[18px] text-accent flex-shrink-0" stroke={2} />
+                        <h4 className="font-serif font-black text-ink dark:text-parchment text-[15px] leading-tight truncate" title={stat.discipline}>
+                          {stat.discipline}
+                        </h4>
+                      </div>
+                      <dl className="px-4 py-0.5">
+                        <div className="flex items-baseline justify-between gap-2 py-[7px] border-b border-stone-200/60 dark:border-white/5">
+                          <dt className="text-[13px] text-stone-600 dark:text-[#c4b09a]">Originais</dt>
+                          <dd className="text-[17px] font-black text-accent tabular-nums leading-none">{stat.avgOriginal}</dd>
                         </div>
                         {Object.entries(stat.providerAverages).map(([provider, avg]) => (
-                          <div key={provider} className="flex items-center justify-between bg-cream dark:bg-[#1e1410] px-3 py-2 rounded-xl shadow-sm border border-stone-100 dark:border-white/5">
-                            <span className="capitalize">{provider === 'gemini' ? 'Google Gemini' : provider === 'claude' ? 'Anthropic Claude' : provider === 'openai' ? 'OpenAI' : provider} (Média)</span>
-                            <span className="font-black text-blue-600 dark:text-blue-400">{avg}</span>
+                          <div key={provider} className="flex items-baseline justify-between gap-2 py-[7px] border-b border-stone-200/60 dark:border-white/5">
+                            <dt className="text-[13px] text-stone-600 dark:text-[#c4b09a] truncate">{PROVIDER_LABELS[provider] || provider}</dt>
+                            <dd className="text-[17px] font-black text-blue-600 dark:text-blue-400 tabular-nums leading-none">{avg}</dd>
                           </div>
                         ))}
-                        <div className="flex items-center justify-between bg-cream dark:bg-[#1e1410] px-3 py-2 rounded-xl shadow-sm border border-stone-100 dark:border-white/5" title="Média de palavras de todos os abstracts (original + IAs) desta disciplina">
-                          <span>Média Geral</span>
-                          <span className="font-black text-ink dark:text-parchment">{stat.avgOverall}</span>
+                        <div className="flex items-baseline justify-between gap-2 py-[7px]" title="Média de todos os abstracts desta disciplina, original e IAs">
+                          <dt className="text-[13px] font-bold text-ink dark:text-parchment">Média geral</dt>
+                          <dd className="text-[17px] font-black text-ink dark:text-parchment tabular-nums leading-none">{stat.avgOverall}</dd>
                         </div>
-                      </div>
+                      </dl>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
