@@ -12,10 +12,8 @@ import {
   IconSearch,
   IconMenu2,
   IconX,
-  IconLogout,
 } from '@tabler/icons-react';
 import ThemeToggle from '@/components/ThemeToggle';
-import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
 
 const LINKS = [
   { href: '/', label: 'Home', icon: IconHome },
@@ -30,12 +28,6 @@ export default function Navigation() {
   const [open, setOpen] = useState(false);
 
   const isActive = (href) => (href === '/' ? pathname === '/' : pathname.startsWith(href));
-
-  const handleLogout = async () => {
-    const supabase = createSupabaseBrowserClient();
-    await supabase.auth.signOut();
-    window.location.href = '/login';
-  };
 
   const linkClass = (href, base) =>
     `${base} ${
@@ -73,14 +65,6 @@ export default function Navigation() {
           ))}
           <div className="w-[1px] h-4 bg-stone-300 dark:bg-white/15" />
           <ThemeToggle />
-          <button
-            type="button"
-            onClick={handleLogout}
-            title="Sair"
-            className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-ink dark:text-parchment hover:text-accent transition-colors"
-          >
-            <IconLogout className="w-4 h-4" /> Sair
-          </button>
         </div>
 
         {/* Mobile controls */}
@@ -114,13 +98,6 @@ export default function Navigation() {
               <Icon className="w-5 h-5" /> {label}
             </Link>
           ))}
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 text-sm font-semibold uppercase tracking-wider px-2 py-3 rounded-lg text-ink dark:text-parchment hover:bg-ink/5 dark:hover:bg-white/8 transition-colors"
-          >
-            <IconLogout className="w-5 h-5" /> Sair
-          </button>
         </div>
       )}
     </nav>

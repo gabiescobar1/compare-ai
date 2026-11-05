@@ -7,7 +7,9 @@ import { DISCIPLINES } from '@/constants/Disciplines';
 import { deleteHistoryRecord, deleteHistoryRecords } from '@/app/actions';
 import { countWords } from '@/lib/words';
 
-export default function HistoryClient({ analyses }) {
+// canManage/canRegenerate vêm do servidor (ver src/app/resultados/page.js).
+// Esconder os botões é só cosmético — quem barra de fato são as Server Actions.
+export default function HistoryClient({ analyses, canManage = false, canRegenerate = false }) {
   // Cópia local para o placar (textos gerados / truncamentos) atualizar ao vivo
   // quando um abstract é regenerado, sem esperar recarregar a página.
   const [analysesState, setAnalysesState] = useState(analyses);
@@ -197,7 +199,7 @@ export default function HistoryClient({ analyses }) {
       </div>
       
       {/* Barra de seleção em lote */}
-      {activeAnalyses.length > 0 && (
+      {canManage && activeAnalyses.length > 0 && (
         <div className="max-w-7xl mx-auto mb-6 flex flex-wrap items-center justify-end gap-2">
           {!selectMode ? (
             <button
@@ -248,7 +250,7 @@ export default function HistoryClient({ analyses }) {
               <ResultsComparison
                 key={item.id}
                 data={item}
-                onDelete={handleDelete}
+                onDelete={canManage ? handleDelete : undefined}
                 defaultExpanded={false}
                 disciplineAvg={disciplineAverages[item.discipline] || 0}
                 selectable={selectMode}
@@ -258,6 +260,7 @@ export default function HistoryClient({ analyses }) {
                 highlightModel={String(item.id) === String(focus?.id) && focus?.provider
                   ? { provider: focus.provider, model_id: focus.model }
                   : null}
+                canRegenerate={canRegenerate}
                 onSummariesChange={(ns) => updateItemSummaries(item.id, ns)}
               />
            ))

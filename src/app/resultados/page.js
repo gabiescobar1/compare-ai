@@ -1,5 +1,6 @@
 import { ArticleSummaryRepository } from '@/repositories/ArticleSummaryRepository';
 import HistoryClient from '@/components/HistoryClient';
+import { OWNER_MODE } from '@/constants/FeatureFlags';
 
 export const revalidate = 0;
 
@@ -15,7 +16,13 @@ export default async function ResultadosPage() {
         </h1>
       </header>
 
-      <HistoryClient analyses={analyses} />
+      {/* Página pública e somente leitura: excluir e regenerar só existem com
+          o MODO AUTORA ligado (src/constants/FeatureFlags.js). */}
+      <HistoryClient
+        analyses={analyses}
+        canManage={OWNER_MODE}
+        canRegenerate={OWNER_MODE}
+      />
     </div>
   );
 }

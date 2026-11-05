@@ -1,18 +1,22 @@
 'use server'
 
 import { ArticleProcessorService } from '@/services/ArticleProcessorService';
-import { createSupabaseServerClient } from '@/lib/supabase-server';
+import { OWNER_MODE } from '@/constants/FeatureFlags';
 
-// Guard de defesa em profundidade: além do proxy, nenhuma action que consome
-// APIs/dados roda sem sessão Supabase válida.
-async function requireAuth() {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Não autorizado.');
+// Única trava do projeto, agora que não existe mais login: nada que gaste as
+// APIs pagas ou altere o histórico roda com o MODO AUTORA desligado.
+//
+// Isto precisa ficar aqui dentro, e não só na interface: cada Server Action é
+// um endereço público que pode ser chamado direto, sem passar pelas telas.
+// Esconder um botão no navegador não tranca nada.
+function requireOwnerMode() {
+  if (!OWNER_MODE) {
+    throw new Error('Esta ação está desativada: o site está em modo somente leitura.');
+  }
 }
 
 export async function processSingleDoi(doiInput, selectedModels, discipline) {
-  await requireAuth();
+  requireOwnerMode();
   const processor = new ArticleProcessorService();
   return await processor.processDoi(doiInput, selectedModels, discipline);
 }
@@ -20,7 +24,7 @@ export async function processSingleDoi(doiInput, selectedModels, discipline) {
 // Regenera o texto de um único modelo de uma análise já existente, sem reenviar
 // o prompt às outras IAs (economiza custo quando só uma falhou).
 export async function regenerateSummary({ analysisId, doi, provider, modelId }) {
-  await requireAuth();
+  requireOwnerMode();
   const processor = new ArticleProcessorService();
   const res = await processor.regenerateSummary({ analysisId, doi, provider, modelId });
   if (res?.success) {
@@ -49,7 +53,7 @@ function extractJson(text) {
  * estrutura AI_MODELS já com os valores atualizados.
  */
 export async function refreshModelPricing() {
-  await requireAuth();
+  requireOwnerMode();
   if (!process.env.ANTHROPIC_API_KEY) {
     throw new Error('ANTHROPIC_API_KEY não configurada — necessária para consultar os preços.');
   }
@@ -132,7 +136,7 @@ import { ArticleSummaryRepository } from '@/repositories/ArticleSummaryRepositor
 import { revalidatePath } from 'next/cache';
 
 export async function deleteHistoryRecord(id) {
-  await requireAuth();
+  requireOwnerMode();
   const repo = new ArticleSummaryRepository();
   const success = await repo.delete(id);
   if (success) {
@@ -143,7 +147,7 @@ export async function deleteHistoryRecord(id) {
 }
 
 export async function deleteHistoryRecords(ids) {
-  await requireAuth();
+  requireOwnerMode();
   const repo = new ArticleSummaryRepository();
   const success = await repo.deleteMany(ids);
   if (success) {

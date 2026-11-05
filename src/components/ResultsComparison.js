@@ -216,7 +216,7 @@ const HighlightedText = ({ text }) => {
 // da frase (ex.: bateu no teto de tokens). Cap-independente e some ao regenerar.
 export const endsWithSentencePunctuation = (t) => /[.!?]["'”’)\]]?\s*$/.test((t || '').trim());
 
-const ModelCard = ({ summary, highlighted = false, analysisId = null, doi = null, onRegenerated }) => {
+const ModelCard = ({ summary, highlighted = false, analysisId = null, doi = null, canRegenerate = false, onRegenerated }) => {
   const [regenLoading, setRegenLoading] = useState(false);
   const isError = summary?.content?.includes('ERRO');
   const looksTruncated = !isError && !!summary?.content && !endsWithSentencePunctuation(summary.content);
@@ -262,18 +262,20 @@ const ModelCard = ({ summary, highlighted = false, analysisId = null, doi = null
           <h3 className="text-base font-bold text-ink dark:text-parchment tracking-tight truncate">{style.label}</h3>
           <span className="text-xs text-stone-500 dark:text-[#9a8070] mt-0.5 tracking-wider truncate">{summary?.model_id || 'Desconhecido'}</span>
         </div>
-        <button
-          type="button"
-          onClick={handleRegenerate}
-          disabled={regenLoading || !analysisId || !doi}
-          title="Reenviar o prompt apenas para este modelo"
-          className="flex-shrink-0 flex items-center gap-1.5 text-xs font-bold py-1.5 px-3 rounded-lg bg-white/60 dark:bg-black/25 hover:bg-white/90 dark:hover:bg-black/40 text-ink dark:text-parchment border border-black/5 dark:border-white/10 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {regenLoading
-            ? <IconLoader2 className="w-3.5 h-3.5 animate-spin" />
-            : <IconRefresh className="w-3.5 h-3.5" />}
-          {regenLoading ? 'Gerando…' : 'Regenerar'}
-        </button>
+        {canRegenerate && (
+          <button
+            type="button"
+            onClick={handleRegenerate}
+            disabled={regenLoading || !analysisId || !doi}
+            title="Reenviar o prompt apenas para este modelo"
+            className="flex-shrink-0 flex items-center gap-1.5 text-xs font-bold py-1.5 px-3 rounded-lg bg-white/60 dark:bg-black/25 hover:bg-white/90 dark:hover:bg-black/40 text-ink dark:text-parchment border border-black/5 dark:border-white/10 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {regenLoading
+              ? <IconLoader2 className="w-3.5 h-3.5 animate-spin" />
+              : <IconRefresh className="w-3.5 h-3.5" />}
+            {regenLoading ? 'Gerando…' : 'Regenerar'}
+          </button>
+        )}
       </div>
 
       {looksTruncated && (
@@ -326,7 +328,7 @@ const ModelCard = ({ summary, highlighted = false, analysisId = null, doi = null
   );
 };
 
-export default function ResultsComparison({ data, onDelete, defaultExpanded = true, disciplineAvg = null, selectable = false, selected = false, onToggleSelect, highlighted = false, highlightModel = null, onSummariesChange }) {
+export default function ResultsComparison({ data, onDelete, defaultExpanded = true, disciplineAvg = null, selectable = false, selected = false, onToggleSelect, highlighted = false, highlightModel = null, canRegenerate = false, onSummariesChange }) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [copiedDoi, setCopiedDoi] = useState(false);
   // Resumos em estado local para refletir regenerações de um único modelo.
@@ -529,6 +531,7 @@ export default function ResultsComparison({ data, onDelete, defaultExpanded = tr
                         highlighted={isHighlightedModel(summary)}
                         analysisId={data.id}
                         doi={data.doi}
+                        canRegenerate={canRegenerate}
                         onRegenerated={(ns) => handleRegenerated(idx, ns)}
                       />
                     </div>
@@ -544,6 +547,7 @@ export default function ResultsComparison({ data, onDelete, defaultExpanded = tr
                           highlighted={isHighlightedModel(summary)}
                           analysisId={data.id}
                           doi={data.doi}
+                          canRegenerate={canRegenerate}
                           onRegenerated={(ns) => handleRegenerated(idx, ns)}
                         />
                       </div>
