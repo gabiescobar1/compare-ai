@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import DoiForm from '@/components/DoiForm';
 import ResultsComparison from '@/components/ResultsComparison';
-import { IconLock, IconListDetails, IconSearch } from '@tabler/icons-react';
+import { IconLock, IconListDetails } from '@tabler/icons-react';
 
 // Cartão que substitui o formulário enquanto o MODO AUTORA está desligado.
 function GenerationLocked() {
@@ -30,12 +30,6 @@ function GenerationLocked() {
               className="flex items-center justify-center gap-2 bg-accent hover:bg-gradient-to-br hover:from-accent hover:to-accent-2 text-white font-serif font-bold py-2.5 px-6 rounded-2xl shadow-sm transition-all hover:shadow-md"
             >
               <IconListDetails className="w-4 h-4" /> Ver o histórico
-            </Link>
-            <Link
-              href="/ngramas"
-              className="flex items-center justify-center gap-2 border border-stone-300 dark:border-white/10 text-ink dark:text-parchment font-serif font-bold py-2.5 px-6 rounded-2xl hover:bg-ink/5 dark:hover:bg-white/8 transition-colors"
-            >
-              <IconSearch className="w-4 h-4" /> Buscar n-gramas
             </Link>
           </div>
         </div>

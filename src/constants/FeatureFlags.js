@@ -1,9 +1,9 @@
 // ============================================================
-// INTERRUPTORES DO SITE
+// INTERRUPTOR DO SITE
 // ============================================================
-// O site é público e não tem login: qualquer visitante abre o Histórico e os
-// N-gramas. Tudo o que gasta dinheiro ou mexe nos dados fica atrás dos
-// interruptores abaixo, que só se abrem editando este arquivo.
+// O site é público e não tem login: qualquer visitante abre o Histórico e o
+// Analytics. Tudo o que gasta dinheiro ou mexe nos dados fica atrás do
+// interruptor abaixo, que só se abre editando este arquivo.
 // ============================================================
 
 
@@ -21,11 +21,3 @@
 // apenas aqui na sua máquina (`npm run dev`), gerar o que precisa, e desligar
 // de novo antes de publicar.
 export const OWNER_MODE = false;
-
-
-// PÁGINA DE ANALYTICS — ainda em construção.
-//
-// `false`: a página mostra um aviso de "em construção". O código e os gráficos
-// continuam todos no projeto, intactos.
-// `true`: publica a página normalmente.
-export const ANALYTICS_PUBLISHED = false;

@@ -9,7 +9,6 @@ import {
   IconBook,
   IconInfoCircle,
   IconChartBar,
-  IconSearch,
   IconMenu2,
   IconX,
 } from '@tabler/icons-react';
@@ -19,7 +18,6 @@ const LINKS = [
   { href: '/', label: 'Home', icon: IconHome },
   { href: '/resultados', label: 'Histórico', icon: IconListDetails },
   { href: '/analytics', label: 'Analytics', icon: IconChartBar },
-  { href: '/ngramas', label: 'N-gramas', icon: IconSearch },
   { href: '/instrucoes', label: 'Como Usar', icon: IconInfoCircle },
 ];
 
